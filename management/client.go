@@ -42,6 +42,7 @@ type Client struct {
 	SigningKeySets  *SigningKeySetsService
 	KeySpecs        *KeySpecsService
 	TrustExchanges  *TrustExchangesService
+	TrustProviders  *TrustProvidersService
 }
 
 // NewClient creates a new Management API client. A management key must be
@@ -58,6 +59,7 @@ func NewClient(opts ...Option) (*Client, error) {
 	c.SigningKeySets = &SigningKeySetsService{client: c}
 	c.KeySpecs = &KeySpecsService{client: c}
 	c.TrustExchanges = &TrustExchangesService{client: c}
+	c.TrustProviders = &TrustProvidersService{client: c}
 	return c, nil
 }
 
