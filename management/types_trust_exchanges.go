@@ -1,4 +1,4 @@
-package microwave
+package management
 
 // TrustExchangeProvider names a known OIDC issuer shape. The enum is open at
 // the SDK boundary so a new provider on the server (e.g. an addition between

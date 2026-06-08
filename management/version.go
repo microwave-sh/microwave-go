@@ -1,4 +1,4 @@
-package microwave
+package management
 
 // Version is the released microwave-go module version. Bumped on each tag.
 const Version = "0.2.0"

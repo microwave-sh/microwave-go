@@ -1,4 +1,4 @@
-package microwave
+package management
 
 // PermissionSet is the read shape of a permission set as returned by the
 // Management API. Permissions is the full list of (resource, action) grants

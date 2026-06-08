@@ -1,14 +1,19 @@
 # microwave-go
 
-Go SDK for the [Microwave Management API](https://api.microwave.sh) by Mataki Labs. Covers the workspace-admin surface: permission sets, signing key sets, key specifications, and trust exchanges.
+Go SDK for [Microwave](https://microwave.sh) by Mataki Labs. Two subpackages mirror the two server planes:
+
+- [`management`](./management) — Management API client. Workspaces, permission sets, signing key sets, key specifications, trust exchanges. Authenticated via a management key or a session JWT obtained through token exchange.
+- [`auth`](./auth) — Auth plane client. Redeems an inbound OIDC assertion (Terraform Cloud workload identity, GitHub Actions, an external IdP) for a Microwave session JWT against a configured Trust Exchange.
+
+Most consumers import only `management`. Federated consumers (Terraform providers, CI jobs) import both: `auth` to obtain a session, then `management` to do work with it.
 
 ## Installation
 
 ```sh
-go get github.com/microwave-sh/microwave-go
+go get github.com/microwave-sh/microwave-go@latest
 ```
 
-## Quick start
+## Quick start — Management API
 
 ```go
 package main
@@ -17,22 +22,22 @@ import (
     "context"
     "log"
 
-    microwave "github.com/microwave-sh/microwave-go"
+    "github.com/microwave-sh/microwave-go/management"
 )
 
 func main() {
-    client, err := microwave.NewClient(
-        microwave.WithManagementKey("mw_live_..."),
+    client, err := management.NewClient(
+        management.WithManagementKey("mw_live_..."),
     )
     if err != nil {
         log.Fatal(err)
     }
 
     ctx := context.Background()
-    ps, err := client.PermissionSets.Create(ctx, &microwave.PermissionSetInput{
+    ps, err := client.PermissionSets.Create(ctx, &management.PermissionSetInput{
         Name:        "deployer",
         Description: "Deploy + upload, no destructive ops",
-        Permissions: []microwave.PermissionInput{
+        Permissions: []management.PermissionInput{
             {Resource: "deploys", Action: "create"},
             {Resource: "deploys", Action: "activate"},
             {Resource: "blobs", Action: "upload"},
@@ -47,9 +52,9 @@ func main() {
 
 The management key can also come from `MICROWAVE_MANAGEMENT_KEY` — `WithManagementKey` is omitted in that case.
 
-## Services
+### Services
 
-The client exposes one service per Management API resource family. Each service has `Create`, `Get`, `Update`, `Delete`, and `List` (signing key sets skip `Update` — algorithm + kind are immutable).
+Each service has `Create`, `Get`, `Update`, `Delete`, and `List` (signing key sets skip `Update` — algorithm + kind are immutable).
 
 | Field | Resource |
 |---|---|
@@ -58,28 +63,28 @@ The client exposes one service per Management API resource family. Each service 
 | `client.KeySpecs` | Key specifications — opaque + JWT formats |
 | `client.TrustExchanges` | OIDC federation rules with CEL policy gates |
 
-## Errors
+### Errors
 
-Non-2xx responses produce `*microwave.Error` values. Two helpers cover the common idempotency patterns:
+Non-2xx responses produce `*management.Error` values. Two helpers cover the common idempotency patterns:
 
 ```go
-if err := client.PermissionSets.Delete(ctx, "ps_missing"); err != nil && !microwave.IsNotFound(err) {
+if err := client.PermissionSets.Delete(ctx, "ps_missing"); err != nil && !management.IsNotFound(err) {
     log.Fatal(err)
 }
 
-if _, err := client.PermissionSets.Create(ctx, in); err != nil && !microwave.IsConflict(err) {
+if _, err := client.PermissionSets.Create(ctx, in); err != nil && !management.IsConflict(err) {
     log.Fatal(err)
 }
 ```
 
-## Federation (`microwave-go/auth`)
+## Federation — `auth` subpackage
 
-For federated consumers — Terraform Cloud runs, GitHub Actions jobs, internal services with workload identity — the `auth` subpackage redeems an inbound OIDC assertion for a Microwave session JWT against a configured Trust Exchange:
+For federated consumers — Terraform Cloud runs, GitHub Actions jobs, internal services with workload identity — `auth.TokenExchange.Redeem` exchanges an inbound OIDC assertion for a Microwave session JWT against a configured Trust Exchange:
 
 ```go
 import (
-    microwave "github.com/microwave-sh/microwave-go"
     "github.com/microwave-sh/microwave-go/auth"
+    "github.com/microwave-sh/microwave-go/management"
 )
 
 authClient, _ := auth.NewClient() // defaults to https://auth.microwave.sh
@@ -89,18 +94,18 @@ if err != nil || !result.Valid {
     log.Fatalf("exchange failed: err=%v code=%s rules=%v", err, result.Code, result.RuleResults)
 }
 
-mgmt, _ := microwave.NewClient(microwave.WithManagementKey(result.JWT))
+mgmt, _ := management.NewClient(management.WithManagementKey(result.JWT))
 ```
 
 A denied exchange returns `Valid=false` with a `Code` (and `RuleResults` when the denial came from CEL policy evaluation) — distinct from a transport-level error.
 
 ## API version
 
-This SDK pins one Microwave API version (`microwave.APIVersion`). Bumping the SDK is the only way to move to a newer API version — date-versioned headers are not a runtime knob.
+The `management` subpackage pins one Microwave Management API version (`management.APIVersion`). Bumping the module is the only way to move to a newer API version — date-versioned headers are not a runtime knob.
 
 ## Status
 
-v0.x — surface is stable for the four resources listed above. Future versions add `microwave_trust_provider`, paginated list responses, lookup-by-name data sources, and pipeline-generated SDKs once `microwave-spec` ships.
+v0.x — surface is stable for the four resources listed above. Future versions add `TrustProviders`, paginated list responses, lookup-by-name discovery, and pipeline-generated SDKs once `microwave-spec` ships.
 
 ## License
 

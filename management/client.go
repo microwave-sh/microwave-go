@@ -1,22 +1,22 @@
-// Package microwave provides a Go client for the Microwave Management API
+// Package management provides a Go client for the Microwave Management API
 // (https://api.microwave.sh). It covers the workspace-admin surface: permission
 // sets, signing key sets, key specifications, and trust exchanges.
 //
-//	client, err := microwave.NewClient(
-//	    microwave.WithManagementKey("mw_live_..."),
+//	client, err := management.NewClient(
+//	    management.WithManagementKey("mw_live_..."),
 //	)
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
 //
-//	ps, err := client.PermissionSets.Create(ctx, &microwave.PermissionSetInput{
+//	ps, err := client.PermissionSets.Create(ctx, &management.PermissionSetInput{
 //	    Name: "deployer",
-//	    Permissions: []microwave.PermissionInput{
+//	    Permissions: []management.PermissionInput{
 //	        {Resource: "deploys", Action: "create"},
 //	        {Resource: "blobs", Action: "upload"},
 //	    },
 //	})
-package microwave
+package management
 
 import (
 	"bytes"
@@ -88,7 +88,7 @@ func (c *Client) doRequest(ctx context.Context, method, path string, query url.V
 	req.Header.Set("Authorization", "Bearer "+c.cfg.managementKey)
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("API-Version", APIVersion)
-	req.Header.Set("User-Agent", "microwave-go/"+Version)
+	req.Header.Set("User-Agent", "microwave-go-management/"+Version)
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
