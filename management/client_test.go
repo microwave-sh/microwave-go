@@ -221,3 +221,65 @@ func TestTrustExchangePolicyRoundTrip(t *testing.T) {
 		t.Errorf("policy round-trip: got %q, want %q", out.Policy, in.Policy)
 	}
 }
+
+func TestTrustProviderCreateGetUpdateDelete(t *testing.T) {
+	// Records (method, path) pairs so the test can assert routing without
+	// duplicating handler logic per verb.
+	var calls []string
+	_, client := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls = append(calls, r.Method+" "+r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api/trust-providers":
+			_ = json.NewEncoder(w).Encode(management.TrustProvider{
+				ID:     "tp_new",
+				Name:   "ci-deploy-mint",
+				Type:   "oidc",
+				Active: true,
+			})
+		case "/api/trust-providers/tp_new":
+			if r.Method == http.MethodDelete {
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+			_ = json.NewEncoder(w).Encode(management.TrustProvider{
+				ID:     "tp_new",
+				Name:   "ci-deploy-mint",
+				Type:   "oidc",
+				Active: true,
+			})
+		}
+	}))
+
+	ctx := context.Background()
+	in := &management.TrustProviderInput{
+		Name:            "ci-deploy-mint",
+		Type:            "oidc",
+		ClientKeySpecID: "spec_client",
+		OutputKeySpecID: "spec_output",
+		Policy:          `client.workspace_id == output.workspace_id`,
+	}
+	if _, err := client.TrustProviders.Create(ctx, in); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if _, err := client.TrustProviders.Get(ctx, "tp_new"); err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if _, err := client.TrustProviders.Update(ctx, "tp_new", in); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+	if err := client.TrustProviders.Delete(ctx, "tp_new"); err != nil {
+		t.Fatalf("Delete: %v", err)
+	}
+	want := []string{
+		"POST /api/trust-providers",
+		"GET /api/trust-providers/tp_new",
+		"PATCH /api/trust-providers/tp_new",
+		"DELETE /api/trust-providers/tp_new",
+	}
+	for i, c := range calls {
+		if i >= len(want) || c != want[i] {
+			t.Errorf("call %d: got %q, want %q", i, c, want[i])
+		}
+	}
+}
