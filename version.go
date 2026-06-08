@@ -1,7 +1,7 @@
 package microwave
 
 // Version is the released microwave-go module version. Bumped on each tag.
-const Version = "0.1.0"
+const Version = "0.2.0"
 
 // APIVersion is the Microwave Management API version this SDK is pinned to.
 // The Stripe-style date-versioned header sent on every request; bumping the
