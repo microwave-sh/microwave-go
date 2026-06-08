@@ -2,8 +2,6 @@
 
 Go SDK for the [Microwave Management API](https://api.microwave.sh) by Mataki Labs. Covers the workspace-admin surface: permission sets, signing key sets, key specifications, and trust exchanges.
 
-> **Looking for the public utility surface?** Dish (225+ stateless utility endpoints at `dish.microwave.sh` — address parsing, barcode generation, country lookup, etc) lives in the separate sibling module [`microwave-sh/microwave-dish-go`](https://github.com/microwave-sh/microwave-dish-go). This module is for AKaaS workspace administration only.
-
 ## Installation
 
 ```sh
