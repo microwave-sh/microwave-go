@@ -1,4 +1,4 @@
-package microwave
+package management
 
 import (
 	"context"

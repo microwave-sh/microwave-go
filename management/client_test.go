@@ -1,25 +1,26 @@
-package microwave_test
+package management_test
 
 import (
 	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
-	microwave "github.com/microwave-sh/microwave-go"
+	"github.com/microwave-sh/microwave-go/management"
 )
 
 // newTestServer constructs an httptest.Server that records requests and lets
 // individual tests supply per-path handlers. Returned alongside the client so
 // each test gets a fully isolated client+server pair.
-func newTestServer(t *testing.T, handler http.Handler) (*httptest.Server, *microwave.Client) {
+func newTestServer(t *testing.T, handler http.Handler) (*httptest.Server, *management.Client) {
 	t.Helper()
 	srv := httptest.NewServer(handler)
 	t.Cleanup(srv.Close)
-	client, err := microwave.NewClient(
-		microwave.WithEndpoint(srv.URL),
-		microwave.WithManagementKey("mw_live_test"),
+	client, err := management.NewClient(
+		management.WithEndpoint(srv.URL),
+		management.WithManagementKey("mw_live_test"),
 	)
 	if err != nil {
 		t.Fatalf("NewClient: %v", err)
@@ -29,7 +30,7 @@ func newTestServer(t *testing.T, handler http.Handler) (*httptest.Server, *micro
 
 func TestNewClientRequiresManagementKey(t *testing.T) {
 	t.Setenv("MICROWAVE_MANAGEMENT_KEY", "")
-	_, err := microwave.NewClient(microwave.WithEndpoint("http://localhost"))
+	_, err := management.NewClient(management.WithEndpoint("http://localhost"))
 	if err == nil {
 		t.Fatal("expected error when management key is absent")
 	}
@@ -37,7 +38,7 @@ func TestNewClientRequiresManagementKey(t *testing.T) {
 
 func TestNewClientReadsKeyFromEnv(t *testing.T) {
 	t.Setenv("MICROWAVE_MANAGEMENT_KEY", "mw_live_from_env")
-	c, err := microwave.NewClient(microwave.WithEndpoint("http://localhost"))
+	c, err := management.NewClient(management.WithEndpoint("http://localhost"))
 	if err != nil {
 		t.Fatalf("NewClient: %v", err)
 	}
@@ -53,7 +54,7 @@ func TestRequestHeadersIncludeAuthAndVersion(t *testing.T) {
 		sawAPIVersion = r.Header.Get("API-Version")
 		sawUserAgent = r.Header.Get("User-Agent")
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(microwave.PermissionSet{ID: "ps_abc", Name: "viewer"})
+		_ = json.NewEncoder(w).Encode(management.PermissionSet{ID: "ps_abc", Name: "viewer"})
 	}))
 	if _, err := client.PermissionSets.Get(context.Background(), "ps_abc"); err != nil {
 		t.Fatalf("Get: %v", err)
@@ -61,11 +62,11 @@ func TestRequestHeadersIncludeAuthAndVersion(t *testing.T) {
 	if sawAuth != "Bearer mw_live_test" {
 		t.Errorf("Authorization header: got %q, want Bearer mw_live_test", sawAuth)
 	}
-	if sawAPIVersion != microwave.APIVersion {
-		t.Errorf("API-Version header: got %q, want %q", sawAPIVersion, microwave.APIVersion)
+	if sawAPIVersion != management.APIVersion {
+		t.Errorf("API-Version header: got %q, want %q", sawAPIVersion, management.APIVersion)
 	}
-	if sawUserAgent == "" || sawUserAgent[:14] != "microwave-go/0" {
-		t.Errorf("User-Agent: got %q, want prefix microwave-go/0", sawUserAgent)
+	if !strings.HasPrefix(sawUserAgent, "microwave-go-management/") {
+		t.Errorf("User-Agent: got %q, want prefix microwave-go-management/", sawUserAgent)
 	}
 }
 
@@ -74,13 +75,13 @@ func TestWorkspaceIDHeaderOptIn(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		saw = r.Header.Get("X-Microwave-Workspace")
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(microwave.PermissionSetList{})
+		_ = json.NewEncoder(w).Encode(management.PermissionSetList{})
 	}))
 	t.Cleanup(srv.Close)
-	client, _ := microwave.NewClient(
-		microwave.WithEndpoint(srv.URL),
-		microwave.WithManagementKey("mw_live_test"),
-		microwave.WithWorkspaceID("ws_42"),
+	client, _ := management.NewClient(
+		management.WithEndpoint(srv.URL),
+		management.WithManagementKey("mw_live_test"),
+		management.WithWorkspaceID("ws_42"),
 	)
 	if _, err := client.PermissionSets.List(context.Background()); err != nil {
 		t.Fatalf("List: %v", err)
@@ -99,7 +100,7 @@ func TestErrorDecode(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error")
 	}
-	if !microwave.IsNotFound(err) {
+	if !management.IsNotFound(err) {
 		t.Errorf("IsNotFound: got false, want true (err=%v)", err)
 	}
 }
@@ -112,24 +113,24 @@ func TestPermissionSetCreateGetUpdateDelete(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
 		case "/api/permission-sets":
-			_ = json.NewEncoder(w).Encode(microwave.PermissionSet{ID: "ps_new", Name: "deployer"})
+			_ = json.NewEncoder(w).Encode(management.PermissionSet{ID: "ps_new", Name: "deployer"})
 		case "/api/permission-sets/ps_new":
 			if r.Method == http.MethodDelete {
 				w.WriteHeader(http.StatusNoContent)
 				return
 			}
-			_ = json.NewEncoder(w).Encode(microwave.PermissionSet{ID: "ps_new", Name: "deployer"})
+			_ = json.NewEncoder(w).Encode(management.PermissionSet{ID: "ps_new", Name: "deployer"})
 		}
 	}))
 
 	ctx := context.Background()
-	if _, err := client.PermissionSets.Create(ctx, &microwave.PermissionSetInput{Name: "deployer"}); err != nil {
+	if _, err := client.PermissionSets.Create(ctx, &management.PermissionSetInput{Name: "deployer"}); err != nil {
 		t.Fatalf("Create: %v", err)
 	}
 	if _, err := client.PermissionSets.Get(ctx, "ps_new"); err != nil {
 		t.Fatalf("Get: %v", err)
 	}
-	if _, err := client.PermissionSets.Update(ctx, "ps_new", &microwave.PermissionSetInput{Name: "deployer"}); err != nil {
+	if _, err := client.PermissionSets.Update(ctx, "ps_new", &management.PermissionSetInput{Name: "deployer"}); err != nil {
 		t.Fatalf("Update: %v", err)
 	}
 	if err := client.PermissionSets.Delete(ctx, "ps_new"); err != nil {
@@ -156,9 +157,9 @@ func TestSigningKeySetCompositeKeyRouting(t *testing.T) {
 	_, client := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sawPath = r.URL.Path
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(microwave.SigningKeySet{Name: "sandbar-cli-sessions", Kind: microwave.SigningKeySetKindAsymmetric})
+		_ = json.NewEncoder(w).Encode(management.SigningKeySet{Name: "sandbar-cli-sessions", Kind: management.SigningKeySetKindAsymmetric})
 	}))
-	if _, err := client.SigningKeySets.Get(context.Background(), microwave.SigningKeySetKindAsymmetric, "sandbar-cli-sessions"); err != nil {
+	if _, err := client.SigningKeySets.Get(context.Background(), management.SigningKeySetKindAsymmetric, "sandbar-cli-sessions"); err != nil {
 		t.Fatalf("Get: %v", err)
 	}
 	want := "/api/signing-key-sets/asymmetric/sandbar-cli-sessions"
@@ -168,47 +169,47 @@ func TestSigningKeySetCompositeKeyRouting(t *testing.T) {
 }
 
 func TestKeySpecCreateRoundTrip(t *testing.T) {
-	var sawBody microwave.KeySpecInput
+	var sawBody management.KeySpecInput
 	_, client := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewDecoder(r.Body).Decode(&sawBody)
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(microwave.KeySpec{
+		_ = json.NewEncoder(w).Encode(management.KeySpec{
 			ID:     "spec_abc",
 			Name:   sawBody.Name,
 			Format: sawBody.Format,
 			Opaque: sawBody.Opaque,
 		})
 	}))
-	in := &microwave.KeySpecInput{
+	in := &management.KeySpecInput{
 		Name:   "sandbar-management",
-		Format: microwave.KeyFormatOpaque,
-		Opaque: microwave.OpaqueConfig{Prefix: "sbr_live_"},
+		Format: management.KeyFormatOpaque,
+		Opaque: management.OpaqueConfig{Prefix: "sbr_live_"},
 	}
 	out, err := client.KeySpecs.Create(context.Background(), in)
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
-	if out.ID != "spec_abc" || out.Format != microwave.KeyFormatOpaque || out.Opaque.Prefix != "sbr_live_" {
+	if out.ID != "spec_abc" || out.Format != management.KeyFormatOpaque || out.Opaque.Prefix != "sbr_live_" {
 		t.Errorf("round-trip: got %+v", out)
 	}
 }
 
 func TestTrustExchangePolicyRoundTrip(t *testing.T) {
-	var sawBody microwave.TrustExchangeInput
+	var sawBody management.TrustExchangeInput
 	_, client := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewDecoder(r.Body).Decode(&sawBody)
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(microwave.TrustExchange{
+		_ = json.NewEncoder(w).Encode(management.TrustExchange{
 			ID:       "ex_abc",
 			Name:     sawBody.Name,
 			Provider: sawBody.Provider,
 			Policy:   sawBody.Policy,
 		})
 	}))
-	in := &microwave.TrustExchangeInput{
+	in := &management.TrustExchangeInput{
 		Name:     "sandbar-github-actions-exchange",
 		Type:     "oidc",
-		Provider: microwave.TrustExchangeProviderCustomOIDC,
+		Provider: management.TrustExchangeProviderCustomOIDC,
 		Issuer:   "https://token.actions.githubusercontent.com",
 		Policy:   `assertion.repository == "sandbar-cloud/example"`,
 	}

@@ -1,4 +1,4 @@
-package microwave
+package management
 
 // SigningKeySetKind is the algorithmic family of a signing key set. The kind
 // is part of the composite primary key (kind, name) — that's why GET / PATCH /

@@ -1,4 +1,4 @@
-package microwave
+package management
 
 // KeyFormat is the on-the-wire shape of keys issued from a spec. Opaque means
 // stateful + Microwave-verified + revocable (an "API key"). JWT means

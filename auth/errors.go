@@ -1,4 +1,4 @@
-package microwave
+package auth
 
 import (
 	"encoding/json"
@@ -8,9 +8,12 @@ import (
 	"net/http"
 )
 
-// Error wraps a non-2xx response. The Microwave API uses Problem+JSON style
-// envelopes (status / title / detail); when the body doesn't decode as one,
-// the raw body is preserved so callers can surface it.
+// Error wraps a non-2xx response from the Auth plane. Failed exchanges
+// against a known-good exchange ID (policy denial, expired assertion,
+// audience mismatch) come back as 200 with valid=false in the body — those
+// are NOT Errors, they're ExchangeResults with Code populated. This type
+// covers transport-level failures: 404 (unknown exchange), 400 (malformed
+// body), 5xx, network errors.
 type Error struct {
 	StatusCode int    `json:"status"`
 	Title      string `json:"title"`
@@ -23,32 +26,22 @@ type Error struct {
 func (e *Error) Error() string {
 	switch {
 	case e.Detail != "":
-		return fmt.Sprintf("microwave: %d %s: %s", e.StatusCode, e.Title, e.Detail)
+		return fmt.Sprintf("microwave/auth: %d %s: %s", e.StatusCode, e.Title, e.Detail)
 	case e.Title != "":
-		return fmt.Sprintf("microwave: %d %s", e.StatusCode, e.Title)
+		return fmt.Sprintf("microwave/auth: %d %s", e.StatusCode, e.Title)
 	case e.RawBody != "":
-		return fmt.Sprintf("microwave: %d: %s", e.StatusCode, e.RawBody)
+		return fmt.Sprintf("microwave/auth: %d: %s", e.StatusCode, e.RawBody)
 	default:
-		return fmt.Sprintf("microwave: %d %s", e.StatusCode, http.StatusText(e.StatusCode))
+		return fmt.Sprintf("microwave/auth: %d %s", e.StatusCode, http.StatusText(e.StatusCode))
 	}
 }
 
-// IsNotFound reports whether err represents a 404. Callers use this to make
-// idempotent "delete if exists" / "create if absent" flows readable.
+// IsNotFound reports whether err represents a 404 — typically a malformed or
+// unknown exchange ID.
 func IsNotFound(err error) bool {
 	var apiErr *Error
 	if errors.As(err, &apiErr) {
 		return apiErr.StatusCode == http.StatusNotFound
-	}
-	return false
-}
-
-// IsConflict reports whether err represents a 409 — typically a unique-name
-// collision on Create or a state-machine violation on Update.
-func IsConflict(err error) bool {
-	var apiErr *Error
-	if errors.As(err, &apiErr) {
-		return apiErr.StatusCode == http.StatusConflict
 	}
 	return false
 }
