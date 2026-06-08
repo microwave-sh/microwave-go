@@ -2,10 +2,6 @@
 // (https://api.microwave.sh). It covers the workspace-admin surface: permission
 // sets, signing key sets, key specifications, and trust exchanges.
 //
-// For the public Dish utility surface (dish.microwave.sh — 225+ stateless
-// utility endpoints across 18 categories), use the separate sibling module
-// github.com/microwave-sh/microwave-dish-go instead.
-//
 //	client, err := microwave.NewClient(
 //	    microwave.WithManagementKey("mw_live_..."),
 //	)
