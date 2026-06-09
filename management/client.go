@@ -38,12 +38,14 @@ const DefaultEndpoint = "https://api.microwave.sh"
 type Client struct {
 	cfg *clientConfig
 
-	PermissionSets *PermissionSetsService
-	SigningKeySets *SigningKeySetsService
-	KeySpecs       *KeySpecsService
-	TrustExchanges *TrustExchangesService
-	TrustProviders *TrustProvidersService
-	Connectors     *ConnectorsService
+	PermissionSets    *PermissionSetsService
+	SigningKeySets    *SigningKeySetsService
+	KeySpecs          *KeySpecsService
+	TrustExchanges    *TrustExchangesService
+	TrustProviders    *TrustProvidersService
+	Connectors        *ConnectorsService
+	TrustBindings     *TrustBindingsService
+	TrustBindingTypes *TrustBindingTypesService
 }
 
 // NewClient creates a new Management API client. A management key must be
@@ -62,6 +64,8 @@ func NewClient(opts ...Option) (*Client, error) {
 	c.TrustExchanges = &TrustExchangesService{client: c}
 	c.TrustProviders = &TrustProvidersService{client: c}
 	c.Connectors = &ConnectorsService{client: c}
+	c.TrustBindings = &TrustBindingsService{client: c}
+	c.TrustBindingTypes = &TrustBindingTypesService{client: c}
 	return c, nil
 }
 

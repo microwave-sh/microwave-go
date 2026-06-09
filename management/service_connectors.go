@@ -5,46 +5,46 @@ import (
 	"net/http"
 )
 
-// ConnectorsService is the Management API surface for workspace federation
-// connectors — the customer-facing rows the SYSTEM federation Trust Exchanges
-// resolve at policy-evaluation time.
-type ConnectorsService struct {
+// TrustBindingsService is the Management API surface for Trust Bindings.
+type TrustBindingsService struct {
 	client *Client
 }
 
-// Create posts a new federation connector under the given workspace. The
-// server validates that exactly one provider-shaped sub-object is populated
-// and that it matches Provider; mismatches return 400.
-func (s *ConnectorsService) Create(ctx context.Context, workspaceID string, input *ConnectorInput) (*Connector, error) {
-	var out Connector
-	if err := s.client.doRequest(ctx, http.MethodPost, "/workspaces/"+workspaceID+"/connectors", nil, input, &out); err != nil {
+func (s *TrustBindingsService) Create(ctx context.Context, workspaceID string, input *TrustBindingInput) (*TrustBinding, error) {
+	var out TrustBinding
+	if err := s.client.doRequest(ctx, http.MethodPost, "/workspaces/"+workspaceID+"/trust-bindings", nil, input, &out); err != nil {
 		return nil, err
 	}
 	return &out, nil
 }
 
-// Get fetches a federation connector by ID under the given workspace. The
-// path is workspace-scoped so a stolen connector ID alone can't address a
-// connector under a different workspace.
-func (s *ConnectorsService) Get(ctx context.Context, workspaceID, connectorID string) (*Connector, error) {
-	var out Connector
-	if err := s.client.doRequest(ctx, http.MethodGet, "/workspaces/"+workspaceID+"/connectors/"+connectorID, nil, nil, &out); err != nil {
+func (s *TrustBindingsService) Get(ctx context.Context, workspaceID, bindingID string) (*TrustBinding, error) {
+	var out TrustBinding
+	if err := s.client.doRequest(ctx, http.MethodGet, "/workspaces/"+workspaceID+"/trust-bindings/"+bindingID, nil, nil, &out); err != nil {
 		return nil, err
 	}
 	return &out, nil
 }
 
-// Delete removes a federation connector. Subsequent policy evaluations that
-// reference this binding fall through to no-match and the underlying token
-// exchange fails closed.
-func (s *ConnectorsService) Delete(ctx context.Context, workspaceID, connectorID string) error {
-	return s.client.doRequest(ctx, http.MethodDelete, "/workspaces/"+workspaceID+"/connectors/"+connectorID, nil, nil, nil)
+func (s *TrustBindingsService) Delete(ctx context.Context, workspaceID, bindingID string) error {
+	return s.client.doRequest(ctx, http.MethodDelete, "/workspaces/"+workspaceID+"/trust-bindings/"+bindingID, nil, nil, nil)
 }
 
-// List returns every federation connector in the given workspace.
-func (s *ConnectorsService) List(ctx context.Context, workspaceID string) (*ConnectorList, error) {
-	var out ConnectorList
-	if err := s.client.doRequest(ctx, http.MethodGet, "/workspaces/"+workspaceID+"/connectors", nil, nil, &out); err != nil {
+func (s *TrustBindingsService) List(ctx context.Context, workspaceID string) (*TrustBindingList, error) {
+	var out TrustBindingList
+	if err := s.client.doRequest(ctx, http.MethodGet, "/workspaces/"+workspaceID+"/trust-bindings", nil, nil, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+type TrustBindingTypesService struct {
+	client *Client
+}
+
+func (s *TrustBindingTypesService) List(ctx context.Context) (*TrustBindingTypeList, error) {
+	var out TrustBindingTypeList
+	if err := s.client.doRequest(ctx, http.MethodGet, "/trust-binding-types", nil, nil, &out); err != nil {
 		return nil, err
 	}
 	return &out, nil
