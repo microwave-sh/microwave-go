@@ -43,7 +43,6 @@ type Client struct {
 	KeySpecs          *KeySpecsService
 	TrustExchanges    *TrustExchangesService
 	TrustProviders    *TrustProvidersService
-	Connectors        *ConnectorsService
 	TrustBindings     *TrustBindingsService
 	TrustBindingTypes *TrustBindingTypesService
 }
@@ -63,7 +62,6 @@ func NewClient(opts ...Option) (*Client, error) {
 	c.KeySpecs = &KeySpecsService{client: c}
 	c.TrustExchanges = &TrustExchangesService{client: c}
 	c.TrustProviders = &TrustProvidersService{client: c}
-	c.Connectors = &ConnectorsService{client: c}
 	c.TrustBindings = &TrustBindingsService{client: c}
 	c.TrustBindingTypes = &TrustBindingTypesService{client: c}
 	return c, nil

@@ -2,11 +2,6 @@ package management
 
 type TrustBindingType string
 
-const (
-	TrustBindingTypeTerraformCloud TrustBindingType = "terraform_cloud"
-	TrustBindingTypeGitHubActions  TrustBindingType = "github_actions"
-)
-
 type TrustBindingTypeDefinition struct {
 	Key                    TrustBindingType `json:"key"`
 	DisplayName            string           `json:"display_name"`

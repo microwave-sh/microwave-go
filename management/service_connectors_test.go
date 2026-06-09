@@ -32,7 +32,7 @@ func TestTrustBindings_Create_RoundTrip(t *testing.T) {
 	}))
 
 	in := &management.TrustBindingInput{
-		BindingType: management.TrustBindingTypeTerraformCloud,
+		BindingType: management.TrustBindingType("terraform_cloud"),
 		Identity: map[string]any{
 			"terraform_organization_name": "mataki",
 			"terraform_workspace_name":    "sandbar-microwave",
@@ -49,7 +49,7 @@ func TestTrustBindings_Create_RoundTrip(t *testing.T) {
 	if sawPath != "/api/trust-bindings" {
 		t.Errorf("path: got %q, want /api/trust-bindings", sawPath)
 	}
-	if sawBody.BindingType != management.TrustBindingTypeTerraformCloud {
+	if sawBody.BindingType != management.TrustBindingType("terraform_cloud") {
 		t.Errorf("body binding_type: got %q", sawBody.BindingType)
 	}
 	if sawBody.Identity["terraform_organization_name"] != "mataki" {
@@ -72,7 +72,7 @@ func TestTrustBindings_Get_RoundTrip(t *testing.T) {
 		_ = json.NewEncoder(w).Encode(management.TrustBinding{
 			ID:          "tb_abc",
 			WorkspaceID: "ws_42",
-			BindingType: management.TrustBindingTypeTerraformCloud,
+			BindingType: management.TrustBindingType("terraform_cloud"),
 			Identity: map[string]any{
 				"terraform_organization_name": "mataki",
 				"terraform_workspace_name":    "sandbar-microwave",
@@ -106,7 +106,7 @@ func TestTrustBindings_Search_ReturnsForWorkspace(t *testing.T) {
 				{
 					ID:          "tb_1",
 					WorkspaceID: "ws_42",
-					BindingType: management.TrustBindingTypeTerraformCloud,
+					BindingType: management.TrustBindingType("terraform_cloud"),
 					Identity: map[string]any{
 						"terraform_organization_name": "mataki",
 						"terraform_workspace_name":    "one",
@@ -115,7 +115,7 @@ func TestTrustBindings_Search_ReturnsForWorkspace(t *testing.T) {
 				{
 					ID:          "tb_2",
 					WorkspaceID: "ws_42",
-					BindingType: management.TrustBindingTypeGitHubActions,
+					BindingType: management.TrustBindingType("github_actions"),
 					Identity: map[string]any{
 						"repository": "sandbar-cloud/example",
 						"workflow":   "deploy.yml",
@@ -139,10 +139,10 @@ func TestTrustBindings_Search_ReturnsForWorkspace(t *testing.T) {
 	if len(out.Data) != 2 {
 		t.Fatalf("data length: got %d, want 2", len(out.Data))
 	}
-	if out.Data[0].BindingType != management.TrustBindingTypeTerraformCloud {
+	if out.Data[0].BindingType != management.TrustBindingType("terraform_cloud") {
 		t.Errorf("data[0] binding_type: got %q", out.Data[0].BindingType)
 	}
-	if out.Data[1].BindingType != management.TrustBindingTypeGitHubActions {
+	if out.Data[1].BindingType != management.TrustBindingType("github_actions") {
 		t.Errorf("data[1] binding_type: got %q", out.Data[1].BindingType)
 	}
 }
@@ -156,7 +156,7 @@ func TestTrustBindingTypes_Search(t *testing.T) {
 		_ = json.NewEncoder(w).Encode(management.SearchResponse[management.TrustBindingTypeDefinition]{
 			Data: []management.TrustBindingTypeDefinition{
 				{
-					Key:                    management.TrustBindingTypeTerraformCloud,
+					Key:                    management.TrustBindingType("terraform_cloud"),
 					DisplayName:            "Terraform Cloud",
 					Description:            "Bind Terraform Cloud workload identity assertions.",
 					LogoURL:                "https://assets.microwave.sh/trust-binding-types/terraform-cloud.svg",
@@ -212,7 +212,7 @@ func TestTrustBindings_Create_APIError_Surfaces(t *testing.T) {
 	}))
 
 	in := &management.TrustBindingInput{
-		BindingType: management.TrustBindingTypeTerraformCloud,
+		BindingType: management.TrustBindingType("terraform_cloud"),
 	}
 	_, err := client.TrustBindings.Create(context.Background(), in)
 	if err == nil {
