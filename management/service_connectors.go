@@ -30,9 +30,12 @@ func (s *TrustBindingsService) Delete(ctx context.Context, workspaceID, bindingI
 	return s.client.doRequest(ctx, http.MethodDelete, "/workspaces/"+workspaceID+"/trust-bindings/"+bindingID, nil, nil, nil)
 }
 
-func (s *TrustBindingsService) List(ctx context.Context, workspaceID string) (*TrustBindingList, error) {
-	var out TrustBindingList
-	if err := s.client.doRequest(ctx, http.MethodGet, "/workspaces/"+workspaceID+"/trust-bindings", nil, nil, &out); err != nil {
+func (s *TrustBindingsService) Search(ctx context.Context, workspaceID string, req *SearchRequest) (*SearchResponse[TrustBinding], error) {
+	var out SearchResponse[TrustBinding]
+	if req == nil {
+		req = &SearchRequest{}
+	}
+	if err := s.client.doRequest(ctx, http.MethodPost, "/workspaces/"+workspaceID+"/trust-bindings/search", nil, req, &out); err != nil {
 		return nil, err
 	}
 	return &out, nil
@@ -42,9 +45,12 @@ type TrustBindingTypesService struct {
 	client *Client
 }
 
-func (s *TrustBindingTypesService) List(ctx context.Context) (*TrustBindingTypeList, error) {
-	var out TrustBindingTypeList
-	if err := s.client.doRequest(ctx, http.MethodGet, "/trust-binding-types", nil, nil, &out); err != nil {
+func (s *TrustBindingTypesService) Search(ctx context.Context, req *SearchRequest) (*SearchResponse[TrustBindingTypeDefinition], error) {
+	var out SearchResponse[TrustBindingTypeDefinition]
+	if req == nil {
+		req = &SearchRequest{}
+	}
+	if err := s.client.doRequest(ctx, http.MethodPost, "/trust-binding-types/search", nil, req, &out); err != nil {
 		return nil, err
 	}
 	return &out, nil

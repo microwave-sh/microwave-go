@@ -95,12 +95,13 @@ func TestTrustBindings_Get_RoundTrip(t *testing.T) {
 	}
 }
 
-func TestTrustBindings_List_ReturnsForWorkspace(t *testing.T) {
-	var sawPath string
+func TestTrustBindings_Search_ReturnsForWorkspace(t *testing.T) {
+	var sawMethod, sawPath string
 	_, client := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sawMethod = r.Method
 		sawPath = r.URL.Path
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(management.TrustBindingList{
+		_ = json.NewEncoder(w).Encode(management.SearchResponse[management.TrustBinding]{
 			Data: []management.TrustBinding{
 				{
 					ID:          "tb_1",
@@ -124,11 +125,15 @@ func TestTrustBindings_List_ReturnsForWorkspace(t *testing.T) {
 		})
 	}))
 
-	out, err := client.TrustBindings.List(context.Background(), "ws_42")
+	limit := 25
+	out, err := client.TrustBindings.Search(context.Background(), "ws_42", &management.SearchRequest{Limit: &limit})
 	if err != nil {
-		t.Fatalf("List: %v", err)
+		t.Fatalf("Search: %v", err)
 	}
-	if sawPath != "/workspaces/ws_42/trust-bindings" {
+	if sawMethod != http.MethodPost {
+		t.Errorf("method: got %q, want POST", sawMethod)
+	}
+	if sawPath != "/workspaces/ws_42/trust-bindings/search" {
 		t.Errorf("path: got %q", sawPath)
 	}
 	if len(out.Data) != 2 {
@@ -142,12 +147,13 @@ func TestTrustBindings_List_ReturnsForWorkspace(t *testing.T) {
 	}
 }
 
-func TestTrustBindingTypes_List(t *testing.T) {
-	var sawPath string
+func TestTrustBindingTypes_Search(t *testing.T) {
+	var sawMethod, sawPath string
 	_, client := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sawMethod = r.Method
 		sawPath = r.URL.Path
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(management.TrustBindingTypeList{
+		_ = json.NewEncoder(w).Encode(management.SearchResponse[management.TrustBindingTypeDefinition]{
 			Data: []management.TrustBindingTypeDefinition{
 				{
 					Key:                    management.TrustBindingTypeTerraformCloud,
@@ -161,11 +167,14 @@ func TestTrustBindingTypes_List(t *testing.T) {
 		})
 	}))
 
-	out, err := client.TrustBindingTypes.List(context.Background())
+	out, err := client.TrustBindingTypes.Search(context.Background(), nil)
 	if err != nil {
-		t.Fatalf("List: %v", err)
+		t.Fatalf("Search: %v", err)
 	}
-	if sawPath != "/trust-binding-types" {
+	if sawMethod != http.MethodPost {
+		t.Errorf("method: got %q, want POST", sawMethod)
+	}
+	if sawPath != "/trust-binding-types/search" {
 		t.Errorf("path: got %q", sawPath)
 	}
 	if len(out.Data) != 1 {

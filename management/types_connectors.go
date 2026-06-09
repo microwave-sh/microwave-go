@@ -16,10 +16,6 @@ type TrustBindingTypeDefinition struct {
 	RequiredIdentityClaims []string         `json:"required_identity_claims"`
 }
 
-type TrustBindingTypeList struct {
-	Data []TrustBindingTypeDefinition `json:"data"`
-}
-
 type TrustBinding struct {
 	ID           string           `json:"id"`
 	WorkspaceID  string           `json:"workspace_id"`
@@ -34,8 +30,4 @@ type TrustBindingInput struct {
 	BindingType  TrustBindingType `json:"binding_type"`
 	Identity     map[string]any   `json:"identity"`
 	OutputClaims map[string]any   `json:"output_claims,omitempty"`
-}
-
-type TrustBindingList struct {
-	Data []TrustBinding `json:"data"`
 }
