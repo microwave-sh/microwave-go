@@ -39,15 +39,15 @@ func TestTrustBindings_Create_RoundTrip(t *testing.T) {
 		},
 		OutputClaims: map[string]any{"environment": "prod"},
 	}
-	out, err := client.TrustBindings.Create(context.Background(), "ws_42", in)
+	out, err := client.TrustBindings.Create(context.Background(), in)
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
 	if sawMethod != http.MethodPost {
 		t.Errorf("method: got %q, want POST", sawMethod)
 	}
-	if sawPath != "/workspaces/ws_42/trust-bindings" {
-		t.Errorf("path: got %q, want /workspaces/ws_42/trust-bindings", sawPath)
+	if sawPath != "/api/trust-bindings" {
+		t.Errorf("path: got %q, want /api/trust-bindings", sawPath)
 	}
 	if sawBody.BindingType != management.TrustBindingTypeTerraformCloud {
 		t.Errorf("body binding_type: got %q", sawBody.BindingType)
@@ -80,15 +80,15 @@ func TestTrustBindings_Get_RoundTrip(t *testing.T) {
 		})
 	}))
 
-	out, err := client.TrustBindings.Get(context.Background(), "ws_42", "tb_abc")
+	out, err := client.TrustBindings.Get(context.Background(), "tb_abc")
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
 	if sawMethod != http.MethodGet {
 		t.Errorf("method: got %q, want GET", sawMethod)
 	}
-	if sawPath != "/workspaces/ws_42/trust-bindings/tb_abc" {
-		t.Errorf("path: got %q, want /workspaces/ws_42/trust-bindings/tb_abc", sawPath)
+	if sawPath != "/api/trust-bindings/tb_abc" {
+		t.Errorf("path: got %q, want /api/trust-bindings/tb_abc", sawPath)
 	}
 	if out.ID != "tb_abc" {
 		t.Errorf("id: got %q", out.ID)
@@ -126,14 +126,14 @@ func TestTrustBindings_Search_ReturnsForWorkspace(t *testing.T) {
 	}))
 
 	limit := 25
-	out, err := client.TrustBindings.Search(context.Background(), "ws_42", &management.SearchRequest{Limit: &limit})
+	out, err := client.TrustBindings.Search(context.Background(), &management.SearchRequest{Limit: &limit})
 	if err != nil {
 		t.Fatalf("Search: %v", err)
 	}
 	if sawMethod != http.MethodPost {
 		t.Errorf("method: got %q, want POST", sawMethod)
 	}
-	if sawPath != "/workspaces/ws_42/trust-bindings/search" {
+	if sawPath != "/api/trust-bindings/search" {
 		t.Errorf("path: got %q", sawPath)
 	}
 	if len(out.Data) != 2 {
@@ -174,7 +174,7 @@ func TestTrustBindingTypes_Search(t *testing.T) {
 	if sawMethod != http.MethodPost {
 		t.Errorf("method: got %q, want POST", sawMethod)
 	}
-	if sawPath != "/trust-binding-types/search" {
+	if sawPath != "/api/trust-binding-types/search" {
 		t.Errorf("path: got %q", sawPath)
 	}
 	if len(out.Data) != 1 {
@@ -193,14 +193,14 @@ func TestTrustBindings_Delete_RoundTrip(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 	}))
 
-	if err := client.TrustBindings.Delete(context.Background(), "ws_42", "tb_abc"); err != nil {
+	if err := client.TrustBindings.Delete(context.Background(), "tb_abc"); err != nil {
 		t.Fatalf("Delete: %v", err)
 	}
 	if sawMethod != http.MethodDelete {
 		t.Errorf("method: got %q, want DELETE", sawMethod)
 	}
-	if sawPath != "/workspaces/ws_42/trust-bindings/tb_abc" {
-		t.Errorf("path: got %q, want /workspaces/ws_42/trust-bindings/tb_abc", sawPath)
+	if sawPath != "/api/trust-bindings/tb_abc" {
+		t.Errorf("path: got %q, want /api/trust-bindings/tb_abc", sawPath)
 	}
 }
 
@@ -214,7 +214,7 @@ func TestTrustBindings_Create_APIError_Surfaces(t *testing.T) {
 	in := &management.TrustBindingInput{
 		BindingType: management.TrustBindingTypeTerraformCloud,
 	}
-	_, err := client.TrustBindings.Create(context.Background(), "ws_42", in)
+	_, err := client.TrustBindings.Create(context.Background(), in)
 	if err == nil {
 		t.Fatal("expected error from 400")
 	}
@@ -235,7 +235,7 @@ func TestTrustBindings_Get_NotFound(t *testing.T) {
 		w.WriteHeader(http.StatusNotFound)
 		_, _ = w.Write([]byte(`{"status":404,"title":"not found","detail":"no such trust binding"}`))
 	}))
-	_, err := client.TrustBindings.Get(context.Background(), "ws_42", "tb_missing")
+	_, err := client.TrustBindings.Get(context.Background(), "tb_missing")
 	if err == nil {
 		t.Fatal("expected error")
 	}
