@@ -38,7 +38,7 @@ const DefaultEndpoint = "https://auth.microwave.sh"
 
 // Version mirrors the parent microwave-go module version. Bumped together
 // because the auth and management surfaces ship as one release artefact.
-const Version = "0.3.0"
+const Version = "0.4.0"
 
 // Client is the Auth plane client. The Auth plane is unauthenticated at the
 // HTTP layer — the OIDC assertion is the only credential — so this client
