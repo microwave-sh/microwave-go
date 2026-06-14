@@ -1,6 +1,7 @@
 // Package management provides a Go client for the Microwave Management API
 // (https://api.microwave.sh). It covers the workspace-admin surface: permission
-// sets, signing key sets, key specifications, and trust exchanges.
+// sets, signing key sets, key specifications, trust exchanges, trust providers,
+// trust federations, and trust federation bindings.
 //
 //	client, err := management.NewClient(
 //	    management.WithManagementKey("mw_live_..."),
@@ -38,11 +39,13 @@ const DefaultEndpoint = "https://api.microwave.sh"
 type Client struct {
 	cfg *clientConfig
 
-	PermissionSets  *PermissionSetsService
-	SigningKeySets  *SigningKeySetsService
-	KeySpecs        *KeySpecsService
-	TrustExchanges  *TrustExchangesService
-	TrustProviders  *TrustProvidersService
+	PermissionSets          *PermissionSetsService
+	SigningKeySets          *SigningKeySetsService
+	KeySpecs                *KeySpecsService
+	TrustExchanges          *TrustExchangesService
+	TrustProviders          *TrustProvidersService
+	TrustFederations        *TrustFederationsService
+	TrustFederationBindings *TrustFederationBindingsService
 }
 
 // NewClient creates a new Management API client. A management key must be
@@ -60,6 +63,8 @@ func NewClient(opts ...Option) (*Client, error) {
 	c.KeySpecs = &KeySpecsService{client: c}
 	c.TrustExchanges = &TrustExchangesService{client: c}
 	c.TrustProviders = &TrustProvidersService{client: c}
+	c.TrustFederations = &TrustFederationsService{client: c}
+	c.TrustFederationBindings = &TrustFederationBindingsService{client: c}
 	return c, nil
 }
 

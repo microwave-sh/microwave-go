@@ -2,7 +2,7 @@
 
 Go SDK for [Microwave](https://microwave.sh) by Mataki Labs. Two subpackages mirror the two server planes:
 
-- [`management`](./management) — Management API client. Workspaces, permission sets, signing key sets, key specifications, trust exchanges. Authenticated via a management key or a session JWT obtained through token exchange.
+- [`management`](./management) — Management API client. Workspaces, permission sets, signing key sets, key specifications, trust exchanges, trust providers, trust federations, and trust federation bindings. Authenticated via a management key or a session JWT obtained through token exchange.
 - [`auth`](./auth) — Auth plane client. Redeems an inbound OIDC assertion (Terraform Cloud workload identity, GitHub Actions, an external IdP) for a Microwave session JWT against a configured Trust Exchange.
 
 Most consumers import only `management`. Federated consumers (Terraform providers, CI jobs) import both: `auth` to obtain a session, then `management` to do work with it.
@@ -62,6 +62,9 @@ Each service has `Create`, `Get`, `Update`, `Delete`, and `List` (signing key se
 | `client.SigningKeySets` | JWKS-managed signing material (asymmetric or symmetric) |
 | `client.KeySpecs` | Key specifications — opaque + JWT formats |
 | `client.TrustExchanges` | OIDC federation rules with CEL policy gates |
+| `client.TrustProviders` | Microwave minting surfaces for downstream consumers |
+| `client.TrustFederations` | OIDC-authenticated trust federations; includes `Redeem` for federation token exchange |
+| `client.TrustFederationBindings` | Identity tuple bindings scoped to a trust federation |
 
 ### Errors
 
@@ -105,7 +108,7 @@ The `management` subpackage pins one Microwave Management API version (`manageme
 
 ## Status
 
-v0.x — surface is stable for the four resources listed above. Future versions add `TrustProviders`, paginated list responses, lookup-by-name discovery, and pipeline-generated SDKs once `microwave-spec` ships.
+v0.x — surface is stabilizing for the resources listed above. Future versions add paginated list responses, lookup-by-name discovery, and pipeline-generated SDKs once `microwave-spec` ships.
 
 ## License
 
