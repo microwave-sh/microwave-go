@@ -74,7 +74,6 @@ type RedeemFederationResult struct {
 type TrustFederationBinding struct {
 	ID            string         `json:"id"`
 	WorkspaceID   string         `json:"workspace_id"`
-	FederationID  string         `json:"federation_id"`
 	FederationKey FederationKey  `json:"federation_key"`
 	Identity      map[string]any `json:"identity"`
 	OutputClaims  map[string]any `json:"output_claims,omitempty"`
