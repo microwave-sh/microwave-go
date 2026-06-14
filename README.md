@@ -2,7 +2,7 @@
 
 Go SDK for [Microwave](https://microwave.sh) by Mataki Labs. Two subpackages mirror the two server planes:
 
-- [`management`](./management) — Management API client. Workspaces, permission sets, signing key sets, key specifications, trust exchanges, trust providers, and trust bindings. Authenticated via a management key or a session JWT obtained through token exchange.
+- [`management`](./management) — Management API client. Workspaces, permission sets, signing key sets, key specifications, trust exchanges, trust providers, trust federations, and trust federation bindings. Authenticated via a management key or a session JWT obtained through token exchange.
 - [`auth`](./auth) — Auth plane client. Redeems an inbound OIDC assertion (Terraform Cloud workload identity, GitHub Actions, an external IdP) for a Microwave session JWT against a configured Trust Exchange.
 
 Most consumers import only `management`. Federated consumers (Terraform providers, CI jobs) import both: `auth` to obtain a session, then `management` to do work with it.
@@ -63,8 +63,8 @@ Each service has `Create`, `Get`, `Update`, `Delete`, and `List` (signing key se
 | `client.KeySpecs` | Key specifications — opaque + JWT formats |
 | `client.TrustExchanges` | OIDC federation rules with CEL policy gates |
 | `client.TrustProviders` | Microwave minting surfaces for downstream consumers |
-| `client.TrustBindings` | External identity tuple bindings consumed by Trust Exchanges |
-| `client.TrustBindingTypes` | Read-only Trust Binding Type catalog |
+| `client.TrustFederations` | OIDC-authenticated trust federations; includes `Redeem` for federation token exchange |
+| `client.TrustFederationBindings` | Identity tuple bindings scoped to a trust federation |
 
 ### Errors
 
