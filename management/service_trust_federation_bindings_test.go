@@ -23,7 +23,6 @@ func TestTrustFederationBindings_Create_RoundTrip(t *testing.T) {
 		_ = json.NewEncoder(w).Encode(management.TrustFederationBinding{
 			ID:            "tfb_abc",
 			WorkspaceID:   "ws_42",
-			FederationID:  "tf_001",
 			FederationKey: sawBody.FederationKey,
 			Identity:      sawBody.Identity,
 			OutputClaims:  sawBody.OutputClaims,
@@ -73,7 +72,6 @@ func TestTrustFederationBindings_Get_RoundTrip(t *testing.T) {
 		_ = json.NewEncoder(w).Encode(management.TrustFederationBinding{
 			ID:            "tfb_abc",
 			WorkspaceID:   "ws_42",
-			FederationID:  "tf_001",
 			FederationKey: management.FederationKey("terraform_cloud"),
 			Identity: map[string]any{
 				"terraform_organization_name": "mataki",
@@ -108,7 +106,6 @@ func TestTrustFederationBindings_Search_ReturnsForWorkspace(t *testing.T) {
 				{
 					ID:            "tfb_1",
 					WorkspaceID:   "ws_42",
-					FederationID:  "tf_001",
 					FederationKey: management.FederationKey("terraform_cloud"),
 					Identity: map[string]any{
 						"terraform_organization_name": "mataki",
@@ -118,7 +115,6 @@ func TestTrustFederationBindings_Search_ReturnsForWorkspace(t *testing.T) {
 				{
 					ID:            "tfb_2",
 					WorkspaceID:   "ws_42",
-					FederationID:  "tf_002",
 					FederationKey: management.FederationKey("github_actions"),
 					Identity: map[string]any{
 						"repository": "sandbar-cloud/example",
