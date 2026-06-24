@@ -13,8 +13,8 @@
 //	ps, err := client.PermissionSets.Create(ctx, &management.PermissionSetInput{
 //	    Name: "deployer",
 //	    Permissions: []management.PermissionInput{
-//	        {Resource: "deploys", Action: "create"},
-//	        {Resource: "blobs", Action: "upload"},
+//	        {Name: "deploys:write", Label: "Write deploys"},
+//	        {Name: "sites:read", Label: "Read sites"},
 //	    },
 //	})
 package management
