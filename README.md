@@ -38,9 +38,9 @@ func main() {
         Name:        "deployer",
         Description: "Deploy + upload, no destructive ops",
         Permissions: []management.PermissionInput{
-            {Resource: "deploys", Action: "create"},
-            {Resource: "deploys", Action: "activate"},
-            {Resource: "blobs", Action: "upload"},
+            {Name: "deploys:write", Label: "Write deploys"},
+            {Name: "deploys:read", Label: "Read deploys"},
+            {Name: "sites:read", Label: "Read sites"},
         },
     })
     if err != nil {

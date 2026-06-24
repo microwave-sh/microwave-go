@@ -1,8 +1,8 @@
 package management
 
 // PermissionSet is the read shape of a permission set as returned by the
-// Management API. Permissions is the full list of (resource, action) grants
-// bound into this set.
+// Management API. Permissions is the full list of scope grants bound into this
+// set.
 type PermissionSet struct {
 	ID          string       `json:"id"`
 	Name        string       `json:"name"`
@@ -20,20 +20,24 @@ type PermissionSetInput struct {
 	Permissions []PermissionInput `json:"permissions"`
 }
 
-// Permission is one grant inside a PermissionSet.
+// Permission is one scope grant inside a PermissionSet. Name is the scope
+// string the API enforces (e.g. "deploys:write", or "*" for full access).
 type Permission struct {
-	ID         string `json:"id"`
-	Resource   string `json:"resource"`
-	Action     string `json:"action"`
-	Constraint string `json:"constraint,omitempty"`
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Label       string `json:"label"`
+	Description string `json:"description,omitempty"`
+	Dangerous   bool   `json:"dangerous"`
 }
 
-// PermissionInput is the write shape for a single grant. Constraint is an
-// optional CEL expression scoping the grant (e.g. `resource.owner == subject`).
+// PermissionInput is the write shape for a single scope grant. Name is the
+// scope string; Label is a human-readable title; Dangerous flags grants that
+// warrant extra confirmation in UIs.
 type PermissionInput struct {
-	Resource   string `json:"resource"`
-	Action     string `json:"action"`
-	Constraint string `json:"constraint,omitempty"`
+	Name        string `json:"name"`
+	Label       string `json:"label"`
+	Description string `json:"description,omitempty"`
+	Dangerous   bool   `json:"dangerous"`
 }
 
 // PermissionSetList is the paginated list response.
