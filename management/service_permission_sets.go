@@ -44,12 +44,14 @@ func (s *PermissionSetsService) Delete(ctx context.Context, id string) error {
 	return s.client.doRequest(ctx, http.MethodDelete, "/api/permission-sets/"+id, nil, nil, nil)
 }
 
-// List returns every permission set in the workspace. The Management API
-// returns the full set today; pagination metadata will land in a future SDK
-// version when the server-side paging contract stabilises.
-func (s *PermissionSetsService) List(ctx context.Context) (*PermissionSetList, error) {
-	var out PermissionSetList
-	if err := s.client.doRequest(ctx, http.MethodGet, "/api/permission-sets", nil, nil, &out); err != nil {
+// Search returns permission sets matching the request. Pass nil for default
+// pagination (server-side defaults apply).
+func (s *PermissionSetsService) Search(ctx context.Context, req *SearchRequest) (*SearchResponse[PermissionSet], error) {
+	var out SearchResponse[PermissionSet]
+	if req == nil {
+		req = &SearchRequest{}
+	}
+	if err := s.client.doRequest(ctx, http.MethodPost, "/api/permission-sets/search", nil, req, &out); err != nil {
 		return nil, err
 	}
 	return &out, nil

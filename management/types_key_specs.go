@@ -14,14 +14,14 @@ const (
 type OpaqueConfig struct {
 	// Prefix is the visible product-namespaced prefix on issued keys, e.g.
 	// "sbr_live_" for a Sandbar production key spec.
-	Prefix string `json:"prefix,omitempty"`
+	Prefix string `json:"prefix"`
 }
 
 // JWTConfig is the format-specific config for Format == "jwt". Issuer is
 // server-derived (https://{spec-id}.microwave.sh) and only meaningful in
 // responses — Create/Update ignore it.
 type JWTConfig struct {
-	Algorithm string `json:"algorithm,omitempty"`
+	Algorithm string `json:"algorithm"`
 	Issuer    string `json:"issuer,omitempty"`
 }
 
@@ -35,34 +35,43 @@ type ExpiryPolicy struct {
 	RotationReminderDays int    `json:"rotation_reminder_days"`
 }
 
-// ClaimPolicy is one row of the unified claim contract. Mode is one of
-// "default", "override", "required", "optional", "forbidden". Value is a
-// pointer so the JSON null/omitted case is distinguishable from an explicit
-// value — required for default/override modes.
+// ClaimPolicy is one row of the unified claim contract. Key is the claim name
+// the row governs (e.g. "sub", "workspace_id"). Mode is one of "not_allowed",
+// "allowed", "required", "default", "override". Value is a pointer so the JSON
+// null/omitted case is distinguishable from an explicit value — used by the
+// "default" and "override" modes. Standard marks the OIDC/JWT standard rows
+// the server seeds; custom rows set it false.
 type ClaimPolicy struct {
+	Key           string `json:"key"`
+	Name          string `json:"name,omitempty"`
+	Type          string `json:"type,omitempty"`
+	Description   string `json:"description,omitempty"`
+	Standard      bool   `json:"standard"`
 	Mode          string `json:"mode"`
 	Value         *any   `json:"value,omitempty"`
 	AllowedValues []any  `json:"allowed_values,omitempty"`
 }
 
-// ClaimsConfig is the full claim contract for a spec: per-claim policies plus
-// a wildcard policy that applies to any claim not explicitly listed.
+// ClaimsConfig is the full claim contract for a spec: the per-claim policy rows
+// plus AllowUnlisted, which decides whether claims not named by any row are
+// permitted on minted tokens (false = a token carrying an unlisted claim is
+// rejected).
 type ClaimsConfig struct {
-	Per      map[string]ClaimPolicy `json:"per,omitempty"`
-	Wildcard *ClaimPolicy           `json:"wildcard,omitempty"`
+	Claims        []ClaimPolicy `json:"claims"`
+	AllowUnlisted bool          `json:"allow_unlisted"`
 }
 
-// OverridePolicy controls what the issuer can override at issue time. Empty
-// list = nothing overridable.
+// OverridePolicy controls what a caller may override at key-issuance time.
 type OverridePolicy struct {
-	Claims []string `json:"claims,omitempty"`
+	AllowCustomExpiry bool `json:"allow_custom_expiry"`
+	AllowCustomScopes bool `json:"allow_custom_scopes"`
 }
 
 // WebhookConfig describes the optional webhook subscription for spec
 // lifecycle events.
 type WebhookConfig struct {
-	URL    string   `json:"url,omitempty"`
-	Events []string `json:"events,omitempty"`
+	Endpoint string   `json:"endpoint,omitempty"`
+	Events   []string `json:"events,omitempty"`
 }
 
 // KeySpec is the read shape of a key spec. PermissionSet is populated only by
@@ -101,9 +110,4 @@ type KeySpecInput struct {
 	OverridePolicy         OverridePolicy `json:"override_policy"`
 	Webhooks               WebhookConfig  `json:"webhooks"`
 	WebhookSigningKeySetID string         `json:"webhook_signing_key_set_id,omitempty"`
-}
-
-// KeySpecList is the paginated list response.
-type KeySpecList struct {
-	Items []KeySpec `json:"items"`
 }

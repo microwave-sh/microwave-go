@@ -94,8 +94,8 @@ func TestTrustFederations_Update_RoundTrip(t *testing.T) {
 		_ = json.NewDecoder(r.Body).Decode(&sawBody)
 		w.Header().Set("Content-Type", "application/json")
 		lbl := "Updated Label"
-		if sawBody.Label != nil {
-			lbl = *sawBody.Label
+		if sawBody.Label != "" {
+			lbl = sawBody.Label
 		}
 		_ = json.NewEncoder(w).Encode(management.TrustFederation{
 			ID:          "tf_abc",
@@ -106,9 +106,8 @@ func TestTrustFederations_Update_RoundTrip(t *testing.T) {
 		})
 	}))
 
-	newLabel := "Updated Label"
 	out, err := client.TrustFederations.Update(context.Background(), "tf_abc", &management.TrustFederationUpdateInput{
-		Label: &newLabel,
+		Label: "Updated Label",
 	})
 	if err != nil {
 		t.Fatalf("Update: %v", err)
