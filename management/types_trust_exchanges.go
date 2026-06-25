@@ -49,8 +49,3 @@ type TrustExchangeInput struct {
 	OutputKeySpecID  string                `json:"output_key_spec_id"`
 	Active           *bool                 `json:"active,omitempty"`
 }
-
-// TrustExchangeList is the paginated list response.
-type TrustExchangeList struct {
-	Items []TrustExchange `json:"items"`
-}

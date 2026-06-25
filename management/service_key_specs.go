@@ -47,10 +47,14 @@ func (s *KeySpecsService) Delete(ctx context.Context, id string) error {
 	return s.client.doRequest(ctx, http.MethodDelete, "/api/key-specs/"+id, nil, nil, nil)
 }
 
-// List returns every key spec in the workspace.
-func (s *KeySpecsService) List(ctx context.Context) (*KeySpecList, error) {
-	var out KeySpecList
-	if err := s.client.doRequest(ctx, http.MethodGet, "/api/key-specs", nil, nil, &out); err != nil {
+// Search returns key specs matching the request. Pass nil for default
+// pagination (server-side defaults apply).
+func (s *KeySpecsService) Search(ctx context.Context, req *SearchRequest) (*SearchResponse[KeySpec], error) {
+	var out SearchResponse[KeySpec]
+	if req == nil {
+		req = &SearchRequest{}
+	}
+	if err := s.client.doRequest(ctx, http.MethodPost, "/api/key-specs/search", nil, req, &out); err != nil {
 		return nil, err
 	}
 	return &out, nil

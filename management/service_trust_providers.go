@@ -47,10 +47,14 @@ func (s *TrustProvidersService) Delete(ctx context.Context, id string) error {
 	return s.client.doRequest(ctx, http.MethodDelete, "/api/trust-providers/"+id, nil, nil, nil)
 }
 
-// List returns every trust provider in the workspace.
-func (s *TrustProvidersService) List(ctx context.Context) (*TrustProviderList, error) {
-	var out TrustProviderList
-	if err := s.client.doRequest(ctx, http.MethodGet, "/api/trust-providers", nil, nil, &out); err != nil {
+// Search returns trust providers matching the request. Pass nil for default
+// pagination (server-side defaults apply).
+func (s *TrustProvidersService) Search(ctx context.Context, req *SearchRequest) (*SearchResponse[TrustProvider], error) {
+	var out SearchResponse[TrustProvider]
+	if req == nil {
+		req = &SearchRequest{}
+	}
+	if err := s.client.doRequest(ctx, http.MethodPost, "/api/trust-providers/search", nil, req, &out); err != nil {
 		return nil, err
 	}
 	return &out, nil

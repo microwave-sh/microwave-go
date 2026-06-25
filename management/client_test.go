@@ -75,7 +75,7 @@ func TestWorkspaceIDHeaderOptIn(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		saw = r.Header.Get("X-Microwave-Workspace")
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(management.PermissionSetList{})
+		_ = json.NewEncoder(w).Encode(management.SearchResponse[management.PermissionSet]{})
 	}))
 	t.Cleanup(srv.Close)
 	client, _ := management.NewClient(
@@ -83,8 +83,8 @@ func TestWorkspaceIDHeaderOptIn(t *testing.T) {
 		management.WithManagementKey("mw_live_test"),
 		management.WithWorkspaceID("ws_42"),
 	)
-	if _, err := client.PermissionSets.List(context.Background()); err != nil {
-		t.Fatalf("List: %v", err)
+	if _, err := client.PermissionSets.Search(context.Background(), nil); err != nil {
+		t.Fatalf("Search: %v", err)
 	}
 	if saw != "ws_42" {
 		t.Errorf("X-Microwave-Workspace: got %q, want ws_42", saw)
@@ -157,7 +157,9 @@ func TestSigningKeySetCompositeKeyRouting(t *testing.T) {
 	_, client := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sawPath = r.URL.Path
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(management.SigningKeySet{Name: "sandbar-cli-sessions", Kind: management.SigningKeySetKindAsymmetric})
+		_ = json.NewEncoder(w).Encode(management.SigningKeySetDetail{
+			Set: management.SigningKeySet{Name: "sandbar-cli-sessions", Kind: management.SigningKeySetKindAsymmetric},
+		})
 	}))
 	if _, err := client.SigningKeySets.Get(context.Background(), management.SigningKeySetKindAsymmetric, "sandbar-cli-sessions"); err != nil {
 		t.Fatalf("Get: %v", err)

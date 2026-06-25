@@ -1,5 +1,12 @@
 package management
 
+// TrustProviderType is the protocol a trust provider speaks. Only "oidc" is
+// supported; the server rejects any other value.
+type TrustProviderType = string
+
+// TrustProviderTypeOIDC is the only trust provider type the server accepts.
+const TrustProviderTypeOIDC TrustProviderType = "oidc"
+
 // TrustProvider is the read shape of a trust provider. Where a Trust Exchange
 // consumes an external OIDC assertion and mints a Microwave token, a Trust
 // Provider does the inverse: it lets an external party authenticate against
@@ -29,9 +36,4 @@ type TrustProviderInput struct {
 	OutputKeySpecID string `json:"output_key_spec_id"`
 	Policy          string `json:"policy"`
 	Active          *bool  `json:"active,omitempty"`
-}
-
-// TrustProviderList is the paginated list response.
-type TrustProviderList struct {
-	Items []TrustProvider `json:"items"`
 }

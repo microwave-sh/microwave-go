@@ -23,9 +23,10 @@ func (s *SigningKeySetsService) Create(ctx context.Context, input *SigningKeySet
 	return &out, nil
 }
 
-// Get fetches a signing key set by (kind, name).
-func (s *SigningKeySetsService) Get(ctx context.Context, kind SigningKeySetKind, name string) (*SigningKeySet, error) {
-	var out SigningKeySet
+// Get fetches a signing key set by (kind, name). The response carries the set
+// plus its individual keys.
+func (s *SigningKeySetsService) Get(ctx context.Context, kind SigningKeySetKind, name string) (*SigningKeySetDetail, error) {
+	var out SigningKeySetDetail
 	path := "/api/signing-key-sets/" + url.PathEscape(string(kind)) + "/" + url.PathEscape(name)
 	if err := s.client.doRequest(ctx, http.MethodGet, path, nil, nil, &out); err != nil {
 		return nil, err
@@ -41,10 +42,14 @@ func (s *SigningKeySetsService) Delete(ctx context.Context, kind SigningKeySetKi
 	return s.client.doRequest(ctx, http.MethodDelete, path, nil, nil, nil)
 }
 
-// List returns every signing key set in the workspace.
-func (s *SigningKeySetsService) List(ctx context.Context) (*SigningKeySetList, error) {
-	var out SigningKeySetList
-	if err := s.client.doRequest(ctx, http.MethodGet, "/api/signing-key-sets", nil, nil, &out); err != nil {
+// Search returns signing key sets matching the request. Pass nil for default
+// pagination (server-side defaults apply).
+func (s *SigningKeySetsService) Search(ctx context.Context, req *SearchRequest) (*SearchResponse[SigningKeySet], error) {
+	var out SearchResponse[SigningKeySet]
+	if req == nil {
+		req = &SearchRequest{}
+	}
+	if err := s.client.doRequest(ctx, http.MethodPost, "/api/signing-key-sets/search", nil, req, &out); err != nil {
 		return nil, err
 	}
 	return &out, nil

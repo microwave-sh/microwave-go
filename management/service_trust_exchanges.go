@@ -46,10 +46,14 @@ func (s *TrustExchangesService) Delete(ctx context.Context, id string) error {
 	return s.client.doRequest(ctx, http.MethodDelete, "/api/trust-exchanges/"+id, nil, nil, nil)
 }
 
-// List returns every trust exchange in the workspace.
-func (s *TrustExchangesService) List(ctx context.Context) (*TrustExchangeList, error) {
-	var out TrustExchangeList
-	if err := s.client.doRequest(ctx, http.MethodGet, "/api/trust-exchanges", nil, nil, &out); err != nil {
+// Search returns trust exchanges matching the request. Pass nil for default
+// pagination (server-side defaults apply).
+func (s *TrustExchangesService) Search(ctx context.Context, req *SearchRequest) (*SearchResponse[TrustExchange], error) {
+	var out SearchResponse[TrustExchange]
+	if req == nil {
+		req = &SearchRequest{}
+	}
+	if err := s.client.doRequest(ctx, http.MethodPost, "/api/trust-exchanges/search", nil, req, &out); err != nil {
 		return nil, err
 	}
 	return &out, nil

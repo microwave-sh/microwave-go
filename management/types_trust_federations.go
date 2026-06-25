@@ -20,6 +20,7 @@ type TrustFederation struct {
 	Audience        string        `json:"audience"`
 	IdentityFields  []string      `json:"identity_fields"`
 	OutputKeySpecID string        `json:"output_key_spec_id,omitempty"`
+	Policy          string        `json:"policy,omitempty"`
 	PolicyOverride  string        `json:"policy_override,omitempty"`
 	CreatedAt       Time          `json:"created_at"`
 	UpdatedAt       Time          `json:"updated_at"`
@@ -36,13 +37,16 @@ type TrustFederationInput struct {
 	Audience        string        `json:"audience,omitempty"`
 	IdentityFields  []string      `json:"identity_fields"`
 	OutputKeySpecID string        `json:"output_key_spec_id,omitempty"`
+	Policy          string        `json:"policy,omitempty"`
 	PolicyOverride  string        `json:"policy_override,omitempty"`
 }
 
 // TrustFederationUpdateInput is the write shape for patching a trust
-// federation. Pointer fields distinguish nil (skip) from &"" (clear).
+// federation. Pointer fields distinguish nil (skip) from &"" (clear). Label is
+// a plain string because the server cannot clear it to "" (an empty label fails
+// validation), so an empty/omitted Label means "no change".
 type TrustFederationUpdateInput struct {
-	Label           *string  `json:"label,omitempty"`
+	Label           string   `json:"label,omitempty"`
 	Description     *string  `json:"description,omitempty"`
 	LogoURL         *string  `json:"logo_url,omitempty"`
 	DocsURL         *string  `json:"docs_url,omitempty"`
@@ -50,6 +54,7 @@ type TrustFederationUpdateInput struct {
 	Audience        *string  `json:"audience,omitempty"`
 	IdentityFields  []string `json:"identity_fields,omitempty"`
 	OutputKeySpecID *string  `json:"output_key_spec_id,omitempty"`
+	Policy          *string  `json:"policy,omitempty"`
 	PolicyOverride  *string  `json:"policy_override,omitempty"`
 }
 

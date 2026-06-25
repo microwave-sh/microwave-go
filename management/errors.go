@@ -27,11 +27,17 @@ type Error struct {
 	RawBody    string        `json:"-"`
 }
 
-// ErrorDetail is one field-level validation failure from the {errors[]} envelope.
+// ErrorDetail is one field-level validation failure from the {errors[]}
+// envelope. The two server error shapes name the offending field differently:
+// the Huma schema envelope uses `location` (+ `value`), the Mataki domain
+// envelope uses `field` (+ `code`). Both are decoded so the field is surfaced
+// regardless of which envelope produced it.
 type ErrorDetail struct {
 	Message  string `json:"message"`
 	Location string `json:"location,omitempty"`
 	Value    any    `json:"value,omitempty"`
+	Field    string `json:"field,omitempty"`
+	Code     string `json:"code,omitempty"`
 }
 
 func (e *Error) Error() string {
@@ -53,8 +59,10 @@ func (e *Error) Error() string {
 	// why (e.g. provider must be one of …; policy compile error at body.policy).
 	for _, fe := range e.Errors {
 		fmt.Fprintf(&b, "\n  - %s", fe.Message)
-		if fe.Location != "" {
-			fmt.Fprintf(&b, " (%s)", fe.Location)
+		if loc := fe.Location; loc != "" {
+			fmt.Fprintf(&b, " (%s)", loc)
+		} else if fe.Field != "" {
+			fmt.Fprintf(&b, " (%s)", fe.Field)
 		}
 	}
 	return b.String()
