@@ -45,6 +45,7 @@ type tokenResponse struct {
 	TokenType    string `json:"token_type"`
 	ExpiresIn    int    `json:"expires_in"`
 	RefreshToken string `json:"refresh_token"`
+	Scope        string `json:"scope"`
 }
 
 func (t tokenResponse) credentials(tokenEndpoint, clientID string, now time.Time) *Credentials {
