@@ -6,31 +6,58 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 )
 
-// Error wraps a non-2xx response. The Microwave API uses Problem+JSON style
-// envelopes (status / title / detail); when the body doesn't decode as one,
-// the raw body is preserved so callers can surface it.
+// Error wraps a non-2xx response. The Microwave API returns two envelope
+// shapes: a Problem+JSON style {status, title, detail, errors[]} for request
+// schema validation, and {type, message} for domain validation (e.g. a CEL
+// policy compile failure). We decode both so the human-actionable detail — the
+// field that's wrong, or the compile error — always reaches the caller instead
+// of a bare "422 Unprocessable Entity". When neither decodes, the raw body is
+// preserved.
 type Error struct {
-	StatusCode int    `json:"status"`
-	Title      string `json:"title"`
-	Detail     string `json:"detail"`
-	Type       string `json:"type,omitempty"`
-	Instance   string `json:"instance,omitempty"`
-	RawBody    string `json:"-"`
+	StatusCode int           `json:"status"`
+	Title      string        `json:"title"`
+	Detail     string        `json:"detail"`
+	Message    string        `json:"message"`
+	Type       string        `json:"type,omitempty"`
+	Instance   string        `json:"instance,omitempty"`
+	Errors     []ErrorDetail `json:"errors,omitempty"`
+	RawBody    string        `json:"-"`
+}
+
+// ErrorDetail is one field-level validation failure from the {errors[]} envelope.
+type ErrorDetail struct {
+	Message  string `json:"message"`
+	Location string `json:"location,omitempty"`
+	Value    any    `json:"value,omitempty"`
 }
 
 func (e *Error) Error() string {
-	switch {
-	case e.Detail != "":
-		return fmt.Sprintf("microwave: %d %s: %s", e.StatusCode, e.Title, e.Detail)
-	case e.Title != "":
-		return fmt.Sprintf("microwave: %d %s", e.StatusCode, e.Title)
-	case e.RawBody != "":
-		return fmt.Sprintf("microwave: %d: %s", e.StatusCode, e.RawBody)
-	default:
-		return fmt.Sprintf("microwave: %d %s", e.StatusCode, http.StatusText(e.StatusCode))
+	// Prefer the most specific human-readable detail: the Problem `detail`, then
+	// the domain `message`, then the raw body.
+	detail := e.Detail
+	if detail == "" {
+		detail = e.Message
 	}
+	var b strings.Builder
+	fmt.Fprintf(&b, "microwave: %d %s", e.StatusCode, e.Title)
+	switch {
+	case detail != "":
+		fmt.Fprintf(&b, ": %s", detail)
+	case len(e.Errors) == 0 && e.RawBody != "":
+		fmt.Fprintf(&b, ": %s", e.RawBody)
+	}
+	// Append field-level validation errors so callers see WHICH field failed and
+	// why (e.g. provider must be one of …; policy compile error at body.policy).
+	for _, fe := range e.Errors {
+		fmt.Fprintf(&b, "\n  - %s", fe.Message)
+		if fe.Location != "" {
+			fmt.Fprintf(&b, " (%s)", fe.Location)
+		}
+	}
+	return b.String()
 }
 
 // IsNotFound reports whether err represents a 404. Callers use this to make
