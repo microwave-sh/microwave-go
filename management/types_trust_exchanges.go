@@ -29,8 +29,12 @@ type TrustExchange struct {
 	Policy           string                `json:"policy"`
 	OutputKeySpecID  string                `json:"output_key_spec_id"`
 	Active           bool                  `json:"active"`
-	CreatedAt        Time                  `json:"created_at"`
-	UpdatedAt        Time                  `json:"updated_at"`
+	// UpstreamClientID echoes the OIDC relying-party client id Microwave uses to
+	// broker an interactive login at the exchange's upstream issuer. The matching
+	// secret is write-only and never returned.
+	UpstreamClientID string `json:"upstream_client_id,omitempty"`
+	CreatedAt        Time   `json:"created_at"`
+	UpdatedAt        Time   `json:"updated_at"`
 }
 
 // TrustExchangeInput is the write shape for Create and Update. Active is a
@@ -48,4 +52,10 @@ type TrustExchangeInput struct {
 	Policy           string                `json:"policy"`
 	OutputKeySpecID  string                `json:"output_key_spec_id"`
 	Active           *bool                 `json:"active,omitempty"`
+	// UpstreamClientID / UpstreamClientSecret register Microwave as an OIDC
+	// relying party at the exchange's upstream issuer, enabling the brokered
+	// interactive (authorization-code / device) CLI login. Set both to enable it;
+	// the secret is write-only and never returned on read.
+	UpstreamClientID     string `json:"upstream_client_id,omitempty"`
+	UpstreamClientSecret string `json:"upstream_client_secret,omitempty"`
 }

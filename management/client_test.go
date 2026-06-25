@@ -224,6 +224,47 @@ func TestTrustExchangePolicyRoundTrip(t *testing.T) {
 	}
 }
 
+// TestTrustExchangeUpstreamRPCredentials verifies the upstream relying-party
+// credentials are sent on the write body (so the brokered interactive login can
+// be configured), and that the read shape carries the client id but has no field
+// to surface the secret.
+func TestTrustExchangeUpstreamRPCredentials(t *testing.T) {
+	var sawBody management.TrustExchangeInput
+	_, client := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&sawBody)
+		w.Header().Set("Content-Type", "application/json")
+		// The server never returns the secret; echo only the client id.
+		_ = json.NewEncoder(w).Encode(management.TrustExchange{
+			ID:               "ex_cli",
+			Name:             sawBody.Name,
+			Provider:         sawBody.Provider,
+			UpstreamClientID: sawBody.UpstreamClientID,
+		})
+	}))
+	in := &management.TrustExchangeInput{
+		Name:                 "cli-via-clerk",
+		Type:                 "oidc",
+		Provider:             management.TrustExchangeProviderClerk,
+		Issuer:               "https://clerk.sandbar.cloud",
+		Policy:               "assertion.org_id != ''",
+		UpstreamClientID:     "rp_client_123",
+		UpstreamClientSecret: "rp_secret_xyz",
+	}
+	out, err := client.TrustExchanges.Create(context.Background(), in)
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if sawBody.UpstreamClientID != in.UpstreamClientID {
+		t.Errorf("upstream_client_id not sent: got %q, want %q", sawBody.UpstreamClientID, in.UpstreamClientID)
+	}
+	if sawBody.UpstreamClientSecret != in.UpstreamClientSecret {
+		t.Errorf("upstream_client_secret not sent: got %q, want %q", sawBody.UpstreamClientSecret, in.UpstreamClientSecret)
+	}
+	if out.UpstreamClientID != in.UpstreamClientID {
+		t.Errorf("upstream_client_id round-trip: got %q, want %q", out.UpstreamClientID, in.UpstreamClientID)
+	}
+}
+
 func TestTrustProviderCreateGetUpdateDelete(t *testing.T) {
 	// Records (method, path) pairs so the test can assert routing without
 	// duplicating handler logic per verb.
