@@ -1,6 +1,7 @@
 package management
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -14,6 +15,7 @@ type Option func(*clientConfig)
 type clientConfig struct {
 	endpoint      string
 	managementKey string
+	bearerSource  func(context.Context) (string, error)
 	workspaceID   string
 	httpClient    *http.Client
 }
@@ -31,6 +33,16 @@ func WithEndpoint(endpoint string) Option {
 func WithManagementKey(key string) Option {
 	return func(c *clientConfig) {
 		c.managementKey = key
+	}
+}
+
+// WithBearerSource supplies the bearer credential dynamically, called once per
+// request. Use it with auth.TokenSource so the client transparently refreshes
+// an interactive login's session token. Mutually exclusive with
+// WithManagementKey / MICROWAVE_MANAGEMENT_KEY.
+func WithBearerSource(src func(context.Context) (string, error)) Option {
+	return func(c *clientConfig) {
+		c.bearerSource = src
 	}
 }
 
@@ -60,8 +72,8 @@ func resolveConfig(opts []Option) (*clientConfig, error) {
 	for _, opt := range opts {
 		opt(cfg)
 	}
-	if cfg.managementKey == "" {
-		return nil, fmt.Errorf("microwave: management key is required (set via WithManagementKey or MICROWAVE_MANAGEMENT_KEY)")
+	if cfg.managementKey == "" && cfg.bearerSource == nil {
+		return nil, fmt.Errorf("microwave: a credential is required (WithManagementKey, MICROWAVE_MANAGEMENT_KEY, or WithBearerSource)")
 	}
 	if cfg.endpoint == "" {
 		return nil, fmt.Errorf("microwave: endpoint is required")

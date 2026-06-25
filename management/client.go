@@ -92,7 +92,14 @@ func (c *Client) doRequest(ctx context.Context, method, path string, query url.V
 		return fmt.Errorf("microwave: build request: %w", err)
 	}
 
-	req.Header.Set("Authorization", "Bearer "+c.cfg.managementKey)
+	bearer := c.cfg.managementKey
+	if c.cfg.bearerSource != nil {
+		bearer, err = c.cfg.bearerSource(ctx)
+		if err != nil {
+			return fmt.Errorf("microwave: resolve bearer credential: %w", err)
+		}
+	}
+	req.Header.Set("Authorization", "Bearer "+bearer)
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("API-Version", APIVersion)
 	req.Header.Set("User-Agent", "microwave-go-management/"+Version)
