@@ -13,11 +13,15 @@ import (
 
 // deviceApprovalRequestResult is the response from POST /auth/device.
 type deviceApprovalRequestResult struct {
-	DeviceCode   string `json:"device_code"`
-	UserCode     string `json:"user_code"`
-	AuthorizeURL string `json:"authorize_url"`
-	ExpiresIn    int    `json:"expires_in"`
-	Interval     int    `json:"interval"`
+	DeviceCode string `json:"device_code"`
+	UserCode   string `json:"user_code"`
+	// VerificationURI is the static console page the operator opens to approve.
+	// It carries no secret; the operator types UserCode there by hand. The
+	// device_code stays here in the client and is only ever sent back to the
+	// poll endpoint.
+	VerificationURI string `json:"verification_uri"`
+	ExpiresIn       int    `json:"expires_in"`
+	Interval        int    `json:"interval"`
 }
 
 // deviceApprovalPollResult is the response from POST /auth/device/token.
@@ -28,10 +32,12 @@ type deviceApprovalPollResult struct {
 }
 
 // loginDeviceApproval drives the management device-approval flow: request a
-// device code, surface the console authorize URL + user code, then poll until
-// the operator approves it in the console. Authorization happens there against
-// the operator's session (which carries their per-operator permissions), so the
-// flow needs no client-id and no PKCE.
+// device code, tell the operator to open the static verification page and type
+// the user code there, then poll until they approve it. Authorization happens
+// against the operator's console session (which carries their per-operator
+// permissions), so the flow needs no client-id and no PKCE. The device_code
+// secret never leaves this client — the operator only ever handles the short
+// user code, which is the RFC 8628 anti-phishing step.
 func loginDeviceApproval(ctx context.Context, cfg LoginConfig, httpClient *http.Client) (*Credentials, error) {
 	base := strings.TrimRight(cfg.DeviceApprovalURL, "/")
 	out := output(cfg)
@@ -40,18 +46,15 @@ func loginDeviceApproval(ctx context.Context, cfg LoginConfig, httpClient *http.
 	if err := postJSONInto(ctx, httpClient, base+"/auth/device", map[string]any{}, &da); err != nil {
 		return nil, err
 	}
-	if da.DeviceCode == "" || da.AuthorizeURL == "" {
-		return nil, fmt.Errorf("microwave/auth: device request missing device_code/authorize_url")
+	if da.DeviceCode == "" || da.VerificationURI == "" || da.UserCode == "" {
+		return nil, fmt.Errorf("microwave/auth: device request missing device_code/verification_uri/user_code")
 	}
 
-	fmt.Fprintf(out, "\n  To approve this login, visit:\n  %s\n", da.AuthorizeURL)
-	if da.UserCode != "" {
-		fmt.Fprintf(out, "\n  and enter the code:  %s\n\n", da.UserCode)
-	}
+	fmt.Fprintf(out, "\n  To sign in, open:\n  %s\n\n  and enter the code:  %s\n\n", da.VerificationURI, da.UserCode)
 	if cfg.OpenBrowser != nil {
-		_ = cfg.OpenBrowser(da.AuthorizeURL)
+		_ = cfg.OpenBrowser(da.VerificationURI)
 	} else {
-		_ = openBrowser(da.AuthorizeURL)
+		_ = openBrowser(da.VerificationURI)
 	}
 
 	interval := time.Duration(da.Interval) * time.Second
