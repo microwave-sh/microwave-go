@@ -19,6 +19,9 @@ type ASMetadata struct {
 	GrantTypesSupported           []string `json:"grant_types_supported"`
 	CodeChallengeMethodsSupported []string `json:"code_challenge_methods_supported"`
 	IssParameterSupported         bool     `json:"authorization_response_iss_parameter_supported"`
+	// CLILoginFlow, when "device_approval", tells LoginAuto to use the
+	// management device-approval flow instead of the OIDC loopback/device grant.
+	CLILoginFlow string `json:"cli_login_flow"`
 }
 
 // supportsDeviceGrant reports whether the AS advertises the device flow.
