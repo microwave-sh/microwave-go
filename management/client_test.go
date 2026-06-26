@@ -202,18 +202,20 @@ func TestTrustExchangePolicyRoundTrip(t *testing.T) {
 		_ = json.NewDecoder(r.Body).Decode(&sawBody)
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(management.TrustExchange{
-			ID:       "ex_abc",
-			Name:     sawBody.Name,
-			Provider: sawBody.Provider,
-			Policy:   sawBody.Policy,
+			ID:              "ex_abc",
+			Name:            sawBody.Name,
+			Provider:        sawBody.Provider,
+			Policy:          sawBody.Policy,
+			VerificationURI: sawBody.VerificationURI,
 		})
 	}))
 	in := &management.TrustExchangeInput{
-		Name:     "sandbar-github-actions-exchange",
-		Type:     "oidc",
-		Provider: management.TrustExchangeProviderCustomOIDC,
-		Issuer:   "https://token.actions.githubusercontent.com",
-		Policy:   `assertion.repository == "sandbar-cloud/example"`,
+		Name:            "sandbar-github-actions-exchange",
+		Type:            "oidc",
+		Provider:        management.TrustExchangeProviderCustomOIDC,
+		Issuer:          "https://token.actions.githubusercontent.com",
+		Policy:          `assertion.repository == "sandbar-cloud/example"`,
+		VerificationURI: "https://app.sandbar.cloud/device",
 	}
 	out, err := client.TrustExchanges.Create(context.Background(), in)
 	if err != nil {
@@ -221,6 +223,12 @@ func TestTrustExchangePolicyRoundTrip(t *testing.T) {
 	}
 	if out.Policy != in.Policy {
 		t.Errorf("policy round-trip: got %q, want %q", out.Policy, in.Policy)
+	}
+	if sawBody.VerificationURI != in.VerificationURI {
+		t.Errorf("verification_uri not sent: got %q, want %q", sawBody.VerificationURI, in.VerificationURI)
+	}
+	if out.VerificationURI != in.VerificationURI {
+		t.Errorf("verification_uri round-trip: got %q, want %q", out.VerificationURI, in.VerificationURI)
 	}
 }
 

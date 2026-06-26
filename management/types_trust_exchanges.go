@@ -33,8 +33,11 @@ type TrustExchange struct {
 	// broker an interactive login at the exchange's upstream issuer. The matching
 	// secret is write-only and never returned.
 	UpstreamClientID string `json:"upstream_client_id,omitempty"`
-	CreatedAt        Time   `json:"created_at"`
-	UpdatedAt        Time   `json:"updated_at"`
+	// VerificationURI is the static console page operators are sent to for this
+	// exchange's device-flow approval (e.g. https://app.sandbar.cloud/device).
+	VerificationURI string `json:"verification_uri,omitempty"`
+	CreatedAt       Time   `json:"created_at"`
+	UpdatedAt       Time   `json:"updated_at"`
 }
 
 // TrustExchangeInput is the write shape for Create and Update. Active is a
@@ -58,4 +61,7 @@ type TrustExchangeInput struct {
 	// the secret is write-only and never returned on read.
 	UpstreamClientID     string `json:"upstream_client_id,omitempty"`
 	UpstreamClientSecret string `json:"upstream_client_secret,omitempty"`
+	// VerificationURI is the static console page operators are sent to for this
+	// exchange's device-flow approval (e.g. https://app.sandbar.cloud/device).
+	VerificationURI string `json:"verification_uri,omitempty"`
 }
