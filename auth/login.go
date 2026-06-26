@@ -25,17 +25,27 @@ const (
 	LoginLoopback
 	// LoginDevice forces the device-authorization grant.
 	LoginDevice
+	// LoginDeviceApproval forces the management device-approval flow: request a
+	// device code, the operator approves it in the console (where their session
+	// carries per-operator permissions), then poll for the minted token.
+	// Requires LoginConfig.DeviceApprovalURL; uses no client-id and no PKCE.
+	LoginDeviceApproval
 )
 
-// LoginConfig drives Login. MetadataURL + ClientID are the only required
-// fields; everything else has a sensible default. Consumers (CLIs) discover
-// MetadataURL + ClientID from their product's public auth-config document.
+// LoginConfig drives Login. MetadataURL is always required; ClientID is
+// required for the OIDC loopback/device-grant flows but not for device-approval
+// (which authorizes against the operator's console session). Consumers (CLIs)
+// discover these from their product's public auth-config document.
 type LoginConfig struct {
 	// MetadataURL is the RFC 8414 authorization-server metadata document.
 	MetadataURL string
 	// ClientID identifies the Microwave key spec / trust exchange this login
-	// mints against.
+	// mints against. Required for loopback/device-grant; unused by device-approval.
 	ClientID string
+	// DeviceApprovalURL is the management API base (e.g. https://api.microwave.sh)
+	// hosting POST /auth/device and POST /auth/device/token. Required for the
+	// device-approval flow.
+	DeviceApprovalURL string
 	// Scopes is the optional requested scope set.
 	Scopes []string
 	// Mode selects the grant; zero value is LoginAuto.
@@ -64,9 +74,8 @@ func Login(ctx context.Context, cfg LoginConfig) (*Credentials, error) {
 	if strings.TrimSpace(cfg.MetadataURL) == "" {
 		return nil, fmt.Errorf("microwave/auth: MetadataURL is required")
 	}
-	if strings.TrimSpace(cfg.ClientID) == "" {
-		return nil, fmt.Errorf("microwave/auth: ClientID is required")
-	}
+	// ClientID is validated per-flow in runLogin: required for the OIDC
+	// loopback/device-grant flows, not for device-approval.
 	httpClient := cfg.HTTPClient
 	if httpClient == nil {
 		httpClient = defaultHTTPClient()
@@ -91,17 +100,37 @@ func Login(ctx context.Context, cfg LoginConfig) (*Credentials, error) {
 
 func runLogin(ctx context.Context, cfg LoginConfig, md *ASMetadata, httpClient *http.Client) (*Credentials, error) {
 	switch cfg.Mode {
+	case LoginDeviceApproval:
+		if cfg.DeviceApprovalURL == "" {
+			return nil, fmt.Errorf("microwave/auth: DeviceApprovalURL is required for device-approval login")
+		}
+		return loginDeviceApproval(ctx, cfg, httpClient)
 	case LoginDevice:
+		if err := requireClientID(cfg); err != nil {
+			return nil, err
+		}
 		if !md.supportsDeviceGrant() {
 			return nil, fmt.Errorf("microwave/auth: server does not advertise a device authorization endpoint")
 		}
 		return loginDevice(ctx, cfg, md, httpClient)
 	case LoginLoopback:
+		if err := requireClientID(cfg); err != nil {
+			return nil, err
+		}
 		if md.AuthorizationEndpoint == "" {
 			return nil, fmt.Errorf("microwave/auth: server does not advertise an authorization endpoint")
 		}
 		return loginLoopback(ctx, cfg, md, httpClient)
-	default: // LoginAuto
+	default: // LoginAuto — honor the server-advertised flow first
+		if md.CLILoginFlow == "device_approval" {
+			if cfg.DeviceApprovalURL == "" {
+				return nil, fmt.Errorf("microwave/auth: server requires device-approval login but DeviceApprovalURL is not set")
+			}
+			return loginDeviceApproval(ctx, cfg, httpClient)
+		}
+		if err := requireClientID(cfg); err != nil {
+			return nil, err
+		}
 		if md.AuthorizationEndpoint != "" {
 			creds, err := loginLoopback(ctx, cfg, md, httpClient)
 			if err == nil {
@@ -115,8 +144,15 @@ func runLogin(ctx context.Context, cfg LoginConfig, md *ASMetadata, httpClient *
 		if md.supportsDeviceGrant() {
 			return loginDevice(ctx, cfg, md, httpClient)
 		}
-		return nil, fmt.Errorf("microwave/auth: server advertises neither an authorization nor a device endpoint")
+		return nil, fmt.Errorf("microwave/auth: server advertises no supported login flow")
 	}
+}
+
+func requireClientID(cfg LoginConfig) error {
+	if strings.TrimSpace(cfg.ClientID) == "" {
+		return fmt.Errorf("microwave/auth: ClientID is required")
+	}
+	return nil
 }
 
 // callbackResult carries what the loopback handler captured from the redirect.
