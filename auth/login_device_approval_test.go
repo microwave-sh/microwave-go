@@ -12,12 +12,12 @@ import (
 )
 
 func TestLoginDeviceApprovalRequestsPrintsAndPolls(t *testing.T) {
-	var sawAuthorizeURL string
+	var openedURL string
 	polls := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/auth/device":
-			_ = json.NewEncoder(w).Encode(map[string]any{"device_code": "dc1", "user_code": "WXYZ", "authorize_url": "http://console/approve?uc=WXYZ", "expires_in": 300, "interval": 0})
+			_ = json.NewEncoder(w).Encode(map[string]any{"device_code": "dc1", "user_code": "WXYZ-1234", "verification_uri": "http://console/device", "expires_in": 300, "interval": 0})
 		case "/auth/device/token":
 			polls++
 			if polls < 2 {
@@ -35,7 +35,7 @@ func TestLoginDeviceApprovalRequestsPrintsAndPolls(t *testing.T) {
 	creds, err := loginDeviceApproval(context.Background(), LoginConfig{
 		DeviceApprovalURL: srv.URL,
 		Output:            &out,
-		OpenBrowser:       func(u string) error { sawAuthorizeURL = u; return nil },
+		OpenBrowser:       func(u string) error { openedURL = u; return nil },
 	}, srv.Client())
 	if err != nil {
 		t.Fatalf("loginDeviceApproval: %v", err)
@@ -46,10 +46,15 @@ func TestLoginDeviceApprovalRequestsPrintsAndPolls(t *testing.T) {
 	if polls < 2 {
 		t.Fatalf("expected to poll until approved, polls=%d", polls)
 	}
-	if sawAuthorizeURL == "" {
-		t.Fatal("expected the authorize URL to be opened")
+	// Security invariant: only the static verification_uri is opened/printed.
+	// The device_code secret must never reach the browser or the operator.
+	if openedURL != "http://console/device" {
+		t.Fatalf("opened URL = %q, want the static verification_uri", openedURL)
 	}
-	if !strings.Contains(out.String(), "WXYZ") {
+	if strings.Contains(openedURL, "dc1") || strings.Contains(out.String(), "dc1") {
+		t.Fatalf("device_code must not be shown to the operator; opened=%q out=%q", openedURL, out.String())
+	}
+	if !strings.Contains(out.String(), "WXYZ-1234") {
 		t.Fatalf("expected the user code shown in output, got %q", out.String())
 	}
 }
@@ -58,7 +63,7 @@ func TestLoginDeviceApprovalDeniedIsTypedError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/auth/device":
-			_ = json.NewEncoder(w).Encode(map[string]any{"device_code": "dc1", "user_code": "U", "authorize_url": "http://c/a", "expires_in": 300, "interval": 0})
+			_ = json.NewEncoder(w).Encode(map[string]any{"device_code": "dc1", "user_code": "UCOD-9999", "verification_uri": "http://c/device", "expires_in": 300, "interval": 0})
 		case "/auth/device/token":
 			_ = json.NewEncoder(w).Encode(map[string]any{"status": "denied"})
 		}
@@ -90,7 +95,7 @@ func TestLoginAutoRespectsAdvertisedDeviceApprovalFlow(t *testing.T) {
 			_ = json.NewEncoder(w).Encode(map[string]any{"issuer": "x", "token_endpoint": "http://x/token", "cli_login_flow": "device_approval"})
 		case "/auth/device":
 			hitDevice = true
-			_ = json.NewEncoder(w).Encode(map[string]any{"device_code": "dc", "user_code": "UC", "authorize_url": "http://example/approve", "expires_in": 300, "interval": 0})
+			_ = json.NewEncoder(w).Encode(map[string]any{"device_code": "dc", "user_code": "UCOD-1234", "verification_uri": "http://example/device", "expires_in": 300, "interval": 0})
 		case "/auth/device/token":
 			_ = json.NewEncoder(w).Encode(map[string]any{"status": "approved", "token": "tok", "expires_in": 3600})
 		default:
