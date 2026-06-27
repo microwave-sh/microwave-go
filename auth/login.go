@@ -61,6 +61,46 @@ type LoginConfig struct {
 	// Output receives human-facing instructions (the device user code / URL).
 	// Defaults to os.Stderr via the caller; nil discards.
 	Output io.Writer
+	// Progress, when set, receives coarse phase events during the login so a
+	// consumer (e.g. a CLI) can render a spinner or status line. Optional; a
+	// nil reporter disables progress reporting and the Output instructions
+	// still print. Surfaced by the device-approval flow today.
+	Progress ProgressReporter
+}
+
+// ProgressReporter receives coarse lifecycle events during an interactive login
+// so a consumer can render a spinner or status line. A nil reporter disables it;
+// the human-facing URL/code instructions still print to Output regardless.
+// Methods are invoked sequentially from Login's calling goroutine, so an
+// implementation may keep simple non-synchronized state (e.g. the active
+// spinner). Each Begin is paired with exactly one Succeed or Fail.
+type ProgressReporter interface {
+	// Begin announces that a phase has started (e.g. a spinner message).
+	Begin(message string)
+	// Succeed marks the active phase complete (e.g. a green ✓).
+	Succeed(message string)
+	// Fail marks the active phase failed (e.g. a red ✗).
+	Fail(message string)
+}
+
+// reportBegin/reportSucceed/reportFail are nil-safe wrappers so the flow code
+// can emit progress events without guarding every call site.
+func reportBegin(cfg LoginConfig, message string) {
+	if cfg.Progress != nil {
+		cfg.Progress.Begin(message)
+	}
+}
+
+func reportSucceed(cfg LoginConfig, message string) {
+	if cfg.Progress != nil {
+		cfg.Progress.Succeed(message)
+	}
+}
+
+func reportFail(cfg LoginConfig, message string) {
+	if cfg.Progress != nil {
+		cfg.Progress.Fail(message)
+	}
 }
 
 // errNoBrowser signals that the loopback flow can't proceed interactively, so

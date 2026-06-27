@@ -42,13 +42,17 @@ func loginDeviceApproval(ctx context.Context, cfg LoginConfig, httpClient *http.
 	base := strings.TrimRight(cfg.DeviceApprovalURL, "/")
 	out := output(cfg)
 
+	reportBegin(cfg, "Starting device authorization")
 	var da deviceApprovalRequestResult
 	if err := postJSONInto(ctx, httpClient, base+"/auth/device", map[string]any{}, &da); err != nil {
+		reportFail(cfg, "Could not start device authorization")
 		return nil, err
 	}
 	if da.DeviceCode == "" || da.VerificationURI == "" || da.UserCode == "" {
+		reportFail(cfg, "Could not start device authorization")
 		return nil, fmt.Errorf("microwave/auth: device request missing device_code/verification_uri/user_code")
 	}
+	reportSucceed(cfg, "Device authorization started")
 
 	fmt.Fprintf(out, "\n  To sign in, open:\n  %s\n\n  and enter the code:  %s\n\n", da.VerificationURI, da.UserCode)
 	if cfg.OpenBrowser != nil {
@@ -63,36 +67,45 @@ func loginDeviceApproval(ctx context.Context, cfg LoginConfig, httpClient *http.
 	}
 	deadline := time.Now().Add(time.Duration(maxInt(da.ExpiresIn, 60)) * time.Second)
 
+	reportBegin(cfg, "Waiting for approval")
 	for {
 		select {
 		case <-ctx.Done():
+			reportFail(cfg, "Login cancelled")
 			return nil, ctx.Err()
 		case <-time.After(interval):
 		}
 		if time.Now().After(deadline) {
+			reportFail(cfg, "Login timed out")
 			return nil, &OAuthError{Code: "expired_token", Description: "device code expired before approval"}
 		}
 		var p deviceApprovalPollResult
 		if err := postJSONInto(ctx, httpClient, base+"/auth/device/token", map[string]string{"device_code": da.DeviceCode}, &p); err != nil {
+			reportFail(cfg, "Login failed")
 			return nil, err
 		}
 		switch p.Status {
 		case "approved":
 			if p.Token == "" {
+				reportFail(cfg, "Login failed")
 				return nil, fmt.Errorf("microwave/auth: approval returned no token")
 			}
 			creds := &Credentials{AccessToken: p.Token, TokenType: "Bearer"}
 			if p.ExpiresIn > 0 {
 				creds.ExpiresAt = time.Now().Add(time.Duration(p.ExpiresIn) * time.Second)
 			}
+			reportSucceed(cfg, "Approved")
 			return creds, nil
 		case "pending":
 			continue
 		case "denied":
+			reportFail(cfg, "Login denied")
 			return nil, &OAuthError{Code: "access_denied", Description: "device login was denied"}
 		case "expired":
+			reportFail(cfg, "Login expired")
 			return nil, &OAuthError{Code: "expired_token", Description: "device code expired before approval"}
 		default:
+			reportFail(cfg, "Login failed")
 			return nil, fmt.Errorf("microwave/auth: unexpected device status %q", p.Status)
 		}
 	}
