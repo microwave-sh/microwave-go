@@ -36,11 +36,11 @@ func TestKeySpecClaimsWireShape(t *testing.T) {
 	got := string(b)
 
 	mustContain := []string{
-		`"claims":[`,           // ClaimsConfig.Claims (not "per"/"wildcard")
-		`"allow_unlisted":true`, // ClaimsConfig.AllowUnlisted
-		`"key":"workspace_id"`,  // ClaimPolicy.Key (was entirely absent)
-		`"mode":"allowed"`,      // ClaimPolicy.Mode
-		`"allow_custom_scopes":true`,            // OverridePolicy (not "claims")
+		`"claims":[`,                             // ClaimsConfig.Claims (not "per"/"wildcard")
+		`"allow_unlisted":true`,                  // ClaimsConfig.AllowUnlisted
+		`"key":"workspace_id"`,                   // ClaimPolicy.Key (was entirely absent)
+		`"mode":"allowed"`,                       // ClaimPolicy.Mode
+		`"allow_custom_scopes":true`,             // OverridePolicy (not "claims")
 		`"endpoint":"https://example.test/hook"`, // WebhookConfig (not "url")
 	}
 	for _, want := range mustContain {
