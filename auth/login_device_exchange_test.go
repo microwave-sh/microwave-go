@@ -21,7 +21,7 @@ func TestLoginDeviceApprovalForwardsTrustExchangeID(t *testing.T) {
 			_ = json.Unmarshal(body, &gotBody)
 			_ = json.NewEncoder(w).Encode(map[string]any{"device_code": "dc1", "user_code": "WXYZ-1234", "verification_uri": "http://c/device", "expires_in": 300, "interval": 0})
 		case "/auth/device/token":
-			_ = json.NewEncoder(w).Encode(map[string]any{"status": "approved", "token": "t", "expires_in": 60})
+			_ = json.NewEncoder(w).Encode(map[string]any{"access_token": "t", "token_type": "Bearer", "expires_in": 60})
 		}
 	}))
 	defer srv.Close()
@@ -49,7 +49,7 @@ func TestLoginDeviceApprovalOmitsEmptyTrustExchangeID(t *testing.T) {
 			_ = json.Unmarshal(body, &gotBody)
 			_ = json.NewEncoder(w).Encode(map[string]any{"device_code": "dc1", "user_code": "AAAA-0000", "verification_uri": "http://c/device", "expires_in": 300, "interval": 0})
 		case "/auth/device/token":
-			_ = json.NewEncoder(w).Encode(map[string]any{"status": "approved", "token": "t", "expires_in": 60})
+			_ = json.NewEncoder(w).Encode(map[string]any{"access_token": "t", "token_type": "Bearer", "expires_in": 60})
 		}
 	}))
 	defer srv.Close()
@@ -73,7 +73,7 @@ func TestLoginDeviceApprovalNeedsNoMetadata(t *testing.T) {
 		case "/auth/device":
 			_ = json.NewEncoder(w).Encode(map[string]any{"device_code": "dc1", "user_code": "AAAA-0000", "verification_uri": "http://c/device", "expires_in": 300, "interval": 0})
 		case "/auth/device/token":
-			_ = json.NewEncoder(w).Encode(map[string]any{"status": "approved", "token": "session.jwt", "expires_in": 60})
+			_ = json.NewEncoder(w).Encode(map[string]any{"access_token": "session.jwt", "token_type": "Bearer", "expires_in": 60})
 		default:
 			t.Errorf("metadata must not be fetched; unexpected path %s", r.URL.Path)
 		}

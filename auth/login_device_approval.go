@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -22,13 +23,6 @@ type deviceApprovalRequestResult struct {
 	VerificationURI string `json:"verification_uri"`
 	ExpiresIn       int    `json:"expires_in"`
 	Interval        int    `json:"interval"`
-}
-
-// deviceApprovalPollResult is the response from POST /auth/device/token.
-type deviceApprovalPollResult struct {
-	Status    string `json:"status"`
-	Token     string `json:"token"`
-	ExpiresIn int    `json:"expires_in"`
 }
 
 // loginDeviceApproval drives the management device-approval flow: request a
@@ -74,7 +68,12 @@ func loginDeviceApproval(ctx context.Context, cfg LoginConfig, httpClient *http.
 	}
 	deadline := time.Now().Add(time.Duration(maxInt(da.ExpiresIn, 60)) * time.Second)
 
+	// Poll the RFC 8628 §3.4 token endpoint: the approved code yields the minted
+	// session as a standard OAuth token response; authorization_pending / slow_down
+	// keep the loop going, every other OAuth error is terminal. The management flow
+	// has no client_id — authorization is the operator's session at approve time.
 	reportBegin(cfg, "Waiting for approval")
+	pollURL := base + "/auth/device/token"
 	for {
 		select {
 		case <-ctx.Done():
@@ -86,34 +85,33 @@ func loginDeviceApproval(ctx context.Context, cfg LoginConfig, httpClient *http.
 			reportFail(cfg, "Login timed out")
 			return nil, &OAuthError{Code: "expired_token", Description: "device code expired before approval"}
 		}
-		var p deviceApprovalPollResult
-		if err := postJSONInto(ctx, httpClient, base+"/auth/device/token", map[string]string{"device_code": da.DeviceCode}, &p); err != nil {
+		tok, err := postToken(ctx, httpClient, pollURL, url.Values{
+			"grant_type":  {deviceGrantType},
+			"device_code": {da.DeviceCode},
+		})
+		if err == nil {
+			reportSucceed(cfg, "Approved")
+			return tok.credentials(pollURL, "", time.Now()), nil
+		}
+		var oe *OAuthError
+		if !asOAuthError(err, &oe) {
 			reportFail(cfg, "Login failed")
 			return nil, err
 		}
-		switch p.Status {
-		case "approved":
-			if p.Token == "" {
-				reportFail(cfg, "Login failed")
-				return nil, fmt.Errorf("microwave/auth: approval returned no token")
-			}
-			creds := &Credentials{AccessToken: p.Token, TokenType: "Bearer"}
-			if p.ExpiresIn > 0 {
-				creds.ExpiresAt = time.Now().Add(time.Duration(p.ExpiresIn) * time.Second)
-			}
-			reportSucceed(cfg, "Approved")
-			return creds, nil
-		case "pending":
-			continue
-		case "denied":
+		switch oe.Code {
+		case "authorization_pending":
+			// keep polling at the current interval
+		case "slow_down":
+			interval += 5 * time.Second // RFC 8628 §3.5
+		case "access_denied":
 			reportFail(cfg, "Login denied")
-			return nil, &OAuthError{Code: "access_denied", Description: "device login was denied"}
-		case "expired":
+			return nil, oe
+		case "expired_token":
 			reportFail(cfg, "Login expired")
-			return nil, &OAuthError{Code: "expired_token", Description: "device code expired before approval"}
+			return nil, oe
 		default:
 			reportFail(cfg, "Login failed")
-			return nil, fmt.Errorf("microwave/auth: unexpected device status %q", p.Status)
+			return nil, oe
 		}
 	}
 }
