@@ -40,7 +40,7 @@ func fetchMetadata(ctx context.Context, httpClient *http.Client, metadataURL str
 	if err != nil {
 		return nil, fmt.Errorf("microwave/auth: fetch metadata: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("microwave/auth: metadata %s: status %d", metadataURL, resp.StatusCode)
 	}

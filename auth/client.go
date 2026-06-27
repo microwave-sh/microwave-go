@@ -91,7 +91,7 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body, resul
 	if err != nil {
 		return fmt.Errorf("microwave/auth: request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode >= 400 {
 		return decodeError(resp)

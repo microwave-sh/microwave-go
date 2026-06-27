@@ -37,7 +37,7 @@ func loginDevice(ctx context.Context, cfg LoginConfig, md *ASMetadata, httpClien
 	if verifyURL == "" {
 		verifyURL = da.VerificationURI
 	}
-	fmt.Fprintf(out, "\n  To sign in, visit:\n  %s\n\n  and enter the code:  %s\n\n", da.VerificationURI, da.UserCode)
+	_, _ = fmt.Fprintf(out, "\n  To sign in, visit:\n  %s\n\n  and enter the code:  %s\n\n", da.VerificationURI, da.UserCode)
 	if cfg.OpenBrowser != nil {
 		_ = cfg.OpenBrowser(verifyURL)
 	} else {
@@ -99,7 +99,7 @@ func requestDeviceCode(ctx context.Context, httpClient *http.Client, endpoint, c
 	if err != nil {
 		return nil, fmt.Errorf("microwave/auth: device request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if resp.StatusCode != http.StatusOK {
 		return nil, parseOAuthError(resp.StatusCode, body)

@@ -55,7 +55,7 @@ func loginDeviceApproval(ctx context.Context, cfg LoginConfig, httpClient *http.
 	}
 	reportSucceed(cfg, "Device authorization started")
 
-	fmt.Fprintf(out, "\n  To sign in, open:\n  %s\n\n  and enter the code:  %s\n\n", da.VerificationURI, da.UserCode)
+	_, _ = fmt.Fprintf(out, "\n  To sign in, open:\n  %s\n\n  and enter the code:  %s\n\n", da.VerificationURI, da.UserCode)
 	if cfg.OpenBrowser != nil {
 		_ = cfg.OpenBrowser(da.VerificationURI)
 	} else {
@@ -133,7 +133,7 @@ func postJSONInto(ctx context.Context, httpClient *http.Client, endpoint string,
 	if err != nil {
 		return fmt.Errorf("microwave/auth: request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	data, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return parseOAuthError(resp.StatusCode, data)
