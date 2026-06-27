@@ -46,6 +46,12 @@ type LoginConfig struct {
 	// hosting POST /auth/device and POST /auth/device/token. Required for the
 	// device-approval flow.
 	DeviceApprovalURL string
+	// TrustExchangeID optionally names the trust exchange the device-approval
+	// flow mints through. Empty selects the server's SYSTEM CLI exchange (used
+	// for a product's own operator login, e.g. `microwave login`); a downstream
+	// product that mints through its own exchange (e.g. Sandbar's cli_via_clerk)
+	// sets its exchange id here. Only consulted by the device-approval flow.
+	TrustExchangeID string
 	// Scopes is the optional requested scope set.
 	Scopes []string
 	// Mode selects the grant; zero value is LoginAuto.
@@ -61,6 +67,46 @@ type LoginConfig struct {
 	// Output receives human-facing instructions (the device user code / URL).
 	// Defaults to os.Stderr via the caller; nil discards.
 	Output io.Writer
+	// Progress, when set, receives coarse phase events during the login so a
+	// consumer (e.g. a CLI) can render a spinner or status line. Optional; a
+	// nil reporter disables progress reporting and the Output instructions
+	// still print. Surfaced by the device-approval flow today.
+	Progress ProgressReporter
+}
+
+// ProgressReporter receives coarse lifecycle events during an interactive login
+// so a consumer can render a spinner or status line. A nil reporter disables it;
+// the human-facing URL/code instructions still print to Output regardless.
+// Methods are invoked sequentially from Login's calling goroutine, so an
+// implementation may keep simple non-synchronized state (e.g. the active
+// spinner). Each Begin is paired with exactly one Succeed or Fail.
+type ProgressReporter interface {
+	// Begin announces that a phase has started (e.g. a spinner message).
+	Begin(message string)
+	// Succeed marks the active phase complete (e.g. a green ✓).
+	Succeed(message string)
+	// Fail marks the active phase failed (e.g. a red ✗).
+	Fail(message string)
+}
+
+// reportBegin/reportSucceed/reportFail are nil-safe wrappers so the flow code
+// can emit progress events without guarding every call site.
+func reportBegin(cfg LoginConfig, message string) {
+	if cfg.Progress != nil {
+		cfg.Progress.Begin(message)
+	}
+}
+
+func reportSucceed(cfg LoginConfig, message string) {
+	if cfg.Progress != nil {
+		cfg.Progress.Succeed(message)
+	}
+}
+
+func reportFail(cfg LoginConfig, message string) {
+	if cfg.Progress != nil {
+		cfg.Progress.Fail(message)
+	}
 }
 
 // errNoBrowser signals that the loopback flow can't proceed interactively, so
@@ -71,9 +117,6 @@ var errNoBrowser = errors.New("microwave/auth: no browser available")
 // persisting them when a Store is configured. In LoginAuto it uses the
 // loopback authorization-code+PKCE flow, falling back to the device grant.
 func Login(ctx context.Context, cfg LoginConfig) (*Credentials, error) {
-	if strings.TrimSpace(cfg.MetadataURL) == "" {
-		return nil, fmt.Errorf("microwave/auth: MetadataURL is required")
-	}
 	// ClientID is validated per-flow in runLogin: required for the OIDC
 	// loopback/device-grant flows, not for device-approval.
 	httpClient := cfg.HTTPClient
@@ -81,9 +124,20 @@ func Login(ctx context.Context, cfg LoginConfig) (*Credentials, error) {
 		httpClient = defaultHTTPClient()
 	}
 
-	md, err := fetchMetadata(ctx, httpClient, cfg.MetadataURL)
-	if err != nil {
-		return nil, err
+	// The device-approval flow talks to the management device endpoints
+	// directly and never reads the authorization-server metadata, so an
+	// explicit device-approval login needs no MetadataURL. Every other flow
+	// (and LoginAuto, which reads cli_login_flow from the metadata) requires it.
+	var md *ASMetadata
+	if cfg.Mode != LoginDeviceApproval {
+		if strings.TrimSpace(cfg.MetadataURL) == "" {
+			return nil, fmt.Errorf("microwave/auth: MetadataURL is required")
+		}
+		var err error
+		md, err = fetchMetadata(ctx, httpClient, cfg.MetadataURL)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	creds, err := runLogin(ctx, cfg, md, httpClient)
