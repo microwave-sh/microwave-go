@@ -25,10 +25,11 @@ func TestLoginDeviceApprovalReportsProgress(t *testing.T) {
 		case "/auth/device/token":
 			polls++
 			if polls < 2 {
-				_ = json.NewEncoder(w).Encode(map[string]any{"status": "pending"})
+				w.WriteHeader(http.StatusBadRequest)
+				_ = json.NewEncoder(w).Encode(map[string]any{"error": "authorization_pending"})
 				return
 			}
-			_ = json.NewEncoder(w).Encode(map[string]any{"status": "approved", "token": "session.jwt", "expires_in": 3600})
+			_ = json.NewEncoder(w).Encode(map[string]any{"access_token": "session.jwt", "token_type": "Bearer", "expires_in": 3600})
 		}
 	}))
 	defer srv.Close()
@@ -64,7 +65,8 @@ func TestLoginDeviceApprovalReportsFailOnDeny(t *testing.T) {
 		case "/auth/device":
 			_ = json.NewEncoder(w).Encode(map[string]any{"device_code": "dc1", "user_code": "UCOD-9999", "verification_uri": "http://c/device", "expires_in": 300, "interval": 0})
 		case "/auth/device/token":
-			_ = json.NewEncoder(w).Encode(map[string]any{"status": "denied"})
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]any{"error": "access_denied"})
 		}
 	}))
 	defer srv.Close()
@@ -91,7 +93,7 @@ func TestLoginDeviceApprovalNilProgressIsNoop(t *testing.T) {
 		case "/auth/device":
 			_ = json.NewEncoder(w).Encode(map[string]any{"device_code": "dc1", "user_code": "AAAA-0000", "verification_uri": "http://c/device", "expires_in": 300, "interval": 0})
 		case "/auth/device/token":
-			_ = json.NewEncoder(w).Encode(map[string]any{"status": "approved", "token": "t", "expires_in": 60})
+			_ = json.NewEncoder(w).Encode(map[string]any{"access_token": "t", "token_type": "Bearer", "expires_in": 60})
 		}
 	}))
 	defer srv.Close()
