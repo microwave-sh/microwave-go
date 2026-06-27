@@ -42,9 +42,16 @@ func loginDeviceApproval(ctx context.Context, cfg LoginConfig, httpClient *http.
 	base := strings.TrimRight(cfg.DeviceApprovalURL, "/")
 	out := output(cfg)
 
+	// Empty body selects the server's SYSTEM CLI exchange; a product minting
+	// through its own exchange names it so the server resolves the right one.
+	reqBody := map[string]any{}
+	if strings.TrimSpace(cfg.TrustExchangeID) != "" {
+		reqBody["trust_exchange_id"] = cfg.TrustExchangeID
+	}
+
 	reportBegin(cfg, "Starting device authorization")
 	var da deviceApprovalRequestResult
-	if err := postJSONInto(ctx, httpClient, base+"/auth/device", map[string]any{}, &da); err != nil {
+	if err := postJSONInto(ctx, httpClient, base+"/auth/device", reqBody, &da); err != nil {
 		reportFail(cfg, "Could not start device authorization")
 		return nil, err
 	}

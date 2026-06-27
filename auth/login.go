@@ -46,6 +46,12 @@ type LoginConfig struct {
 	// hosting POST /auth/device and POST /auth/device/token. Required for the
 	// device-approval flow.
 	DeviceApprovalURL string
+	// TrustExchangeID optionally names the trust exchange the device-approval
+	// flow mints through. Empty selects the server's SYSTEM CLI exchange (used
+	// for a product's own operator login, e.g. `microwave login`); a downstream
+	// product that mints through its own exchange (e.g. Sandbar's cli_via_clerk)
+	// sets its exchange id here. Only consulted by the device-approval flow.
+	TrustExchangeID string
 	// Scopes is the optional requested scope set.
 	Scopes []string
 	// Mode selects the grant; zero value is LoginAuto.
@@ -111,9 +117,6 @@ var errNoBrowser = errors.New("microwave/auth: no browser available")
 // persisting them when a Store is configured. In LoginAuto it uses the
 // loopback authorization-code+PKCE flow, falling back to the device grant.
 func Login(ctx context.Context, cfg LoginConfig) (*Credentials, error) {
-	if strings.TrimSpace(cfg.MetadataURL) == "" {
-		return nil, fmt.Errorf("microwave/auth: MetadataURL is required")
-	}
 	// ClientID is validated per-flow in runLogin: required for the OIDC
 	// loopback/device-grant flows, not for device-approval.
 	httpClient := cfg.HTTPClient
@@ -121,9 +124,20 @@ func Login(ctx context.Context, cfg LoginConfig) (*Credentials, error) {
 		httpClient = defaultHTTPClient()
 	}
 
-	md, err := fetchMetadata(ctx, httpClient, cfg.MetadataURL)
-	if err != nil {
-		return nil, err
+	// The device-approval flow talks to the management device endpoints
+	// directly and never reads the authorization-server metadata, so an
+	// explicit device-approval login needs no MetadataURL. Every other flow
+	// (and LoginAuto, which reads cli_login_flow from the metadata) requires it.
+	var md *ASMetadata
+	if cfg.Mode != LoginDeviceApproval {
+		if strings.TrimSpace(cfg.MetadataURL) == "" {
+			return nil, fmt.Errorf("microwave/auth: MetadataURL is required")
+		}
+		var err error
+		md, err = fetchMetadata(ctx, httpClient, cfg.MetadataURL)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	creds, err := runLogin(ctx, cfg, md, httpClient)
