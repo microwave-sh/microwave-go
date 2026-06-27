@@ -141,7 +141,7 @@ func browserToCallback() func(string) error {
 		go func() {
 			resp, err := http.Get(u) //nolint:noctx
 			if err == nil {
-				resp.Body.Close()
+				_ = resp.Body.Close()
 			}
 		}()
 		return nil
@@ -193,7 +193,7 @@ func TestLogin_StateMismatchRejected(t *testing.T) {
 		go func() {
 			resp, gerr := http.Get(redirectURI + "?code=code_x&state=WRONG") //nolint:noctx
 			if gerr == nil {
-				resp.Body.Close()
+				_ = resp.Body.Close()
 			}
 		}()
 		return nil

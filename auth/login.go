@@ -225,7 +225,7 @@ func loginLoopback(ctx context.Context, cfg LoginConfig, md *ASMetadata, httpCli
 		// Can't bind a loopback port — let LoginAuto fall back to device.
 		return nil, fmt.Errorf("%w: loopback bind failed: %v", errNoBrowser, err)
 	}
-	defer ln.Close()
+	defer func() { _ = ln.Close() }()
 
 	redirectURI := fmt.Sprintf("http://127.0.0.1:%d/callback", ln.Addr().(*net.TCPAddr).Port)
 
@@ -263,7 +263,7 @@ func loginLoopback(ctx context.Context, cfg LoginConfig, md *ASMetadata, httpCli
 		}
 	})}
 	go srv.Serve(ln) //nolint:errcheck
-	defer srv.Close()
+	defer func() { _ = srv.Close() }()
 
 	authURL := buildAuthorizeURL(md.AuthorizationEndpoint, cfg.ClientID, redirectURI, pkce.challenge, state, cfg.Scopes)
 	opener := cfg.OpenBrowser
@@ -273,7 +273,7 @@ func loginLoopback(ctx context.Context, cfg LoginConfig, md *ASMetadata, httpCli
 	if err := opener(authURL); err != nil {
 		return nil, fmt.Errorf("%w: %v", errNoBrowser, err)
 	}
-	fmt.Fprintf(output(cfg), "\n  If your browser didn't open, visit:\n  %s\n\n", authURL)
+	_, _ = fmt.Fprintf(output(cfg), "\n  If your browser didn't open, visit:\n  %s\n\n", authURL)
 
 	select {
 	case <-ctx.Done():
@@ -335,7 +335,7 @@ func output(cfg LoginConfig) io.Writer {
 
 func writeBrowserMessage(w http.ResponseWriter, title, body string) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	fmt.Fprintf(w, "<!doctype html><meta charset=utf-8><title>%s</title><body style=\"font:16px system-ui;margin:3rem\"><h1>%s</h1><p>%s</p>", title, title, body)
+	_, _ = fmt.Fprintf(w, "<!doctype html><meta charset=utf-8><title>%s</title><body style=\"font:16px system-ui;margin:3rem\"><h1>%s</h1><p>%s</p>", title, title, body)
 }
 
 func defaultHTTPClient() *http.Client { return &http.Client{Timeout: 30 * time.Second} }

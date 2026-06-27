@@ -101,7 +101,7 @@ func postToken(ctx context.Context, httpClient *http.Client, tokenEndpoint strin
 	if err != nil {
 		return tokenResponse{}, fmt.Errorf("microwave/auth: token request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if resp.StatusCode != http.StatusOK {
 		return tokenResponse{}, parseOAuthError(resp.StatusCode, body)
