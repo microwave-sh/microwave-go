@@ -3,6 +3,7 @@ package management
 import (
 	"context"
 	"net/http"
+	"net/url"
 )
 
 // KeySpecsService is the Management API surface for key specifications.
@@ -55,6 +56,17 @@ func (s *KeySpecsService) Search(ctx context.Context, req *SearchRequest) (*Sear
 		req = &SearchRequest{}
 	}
 	if err := s.client.doRequest(ctx, http.MethodPost, "/api/key-specs/search", nil, req, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// IssueKey mints a key from the spec. The raw key in the result is returned
+// only once. specID is the path-bound spec; in must be non-nil.
+func (s *KeySpecsService) IssueKey(ctx context.Context, specID string, in *IssueKeyInput) (*IssuedKeyResult, error) {
+	var out IssuedKeyResult
+	path := "/api/key-specs/" + url.PathEscape(specID) + "/keys"
+	if err := s.client.doRequest(ctx, http.MethodPost, path, nil, in, &out); err != nil {
 		return nil, err
 	}
 	return &out, nil
