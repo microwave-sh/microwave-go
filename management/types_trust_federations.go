@@ -19,6 +19,7 @@ type TrustFederation struct {
 	Issuer          string        `json:"issuer"`
 	Audience        string        `json:"audience"`
 	IdentityFields  []string      `json:"identity_fields"`
+	GlobFields      []string      `json:"glob_fields,omitempty"`
 	OutputKeySpecID string        `json:"output_key_spec_id,omitempty"`
 	Policy          string        `json:"policy,omitempty"`
 	PolicyOverride  string        `json:"policy_override,omitempty"`
@@ -36,6 +37,7 @@ type TrustFederationInput struct {
 	Issuer          string        `json:"issuer,omitempty"`
 	Audience        string        `json:"audience,omitempty"`
 	IdentityFields  []string      `json:"identity_fields"`
+	GlobFields      []string      `json:"glob_fields,omitempty"`
 	OutputKeySpecID string        `json:"output_key_spec_id,omitempty"`
 	Policy          string        `json:"policy,omitempty"`
 	PolicyOverride  string        `json:"policy_override,omitempty"`
@@ -53,6 +55,7 @@ type TrustFederationUpdateInput struct {
 	Issuer          *string  `json:"issuer,omitempty"`
 	Audience        *string  `json:"audience,omitempty"`
 	IdentityFields  []string `json:"identity_fields,omitempty"`
+	GlobFields      []string `json:"glob_fields,omitempty"`
 	OutputKeySpecID *string  `json:"output_key_spec_id,omitempty"`
 	Policy          *string  `json:"policy,omitempty"`
 	PolicyOverride  *string  `json:"policy_override,omitempty"`
