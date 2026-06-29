@@ -47,6 +47,7 @@ type Client struct {
 	cfg *clientConfig
 
 	TokenExchange *TokenExchangeService
+	Keys          *KeysService
 }
 
 // NewClient creates a new Auth plane client. The endpoint defaults to
@@ -59,6 +60,7 @@ func NewClient(opts ...Option) (*Client, error) {
 	}
 	c := &Client{cfg: cfg}
 	c.TokenExchange = &TokenExchangeService{client: c}
+	c.Keys = &KeysService{client: c}
 	return c, nil
 }
 

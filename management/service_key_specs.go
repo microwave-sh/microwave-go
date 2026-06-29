@@ -3,6 +3,7 @@ package management
 import (
 	"context"
 	"net/http"
+	"net/url"
 )
 
 // KeySpecsService is the Management API surface for key specifications.
@@ -58,4 +59,37 @@ func (s *KeySpecsService) Search(ctx context.Context, req *SearchRequest) (*Sear
 		return nil, err
 	}
 	return &out, nil
+}
+
+// IssueKey mints a key from the spec. The raw key in the result is returned
+// only once. specID is the path-bound spec; in must be non-nil.
+func (s *KeySpecsService) IssueKey(ctx context.Context, specID string, in *IssueKeyInput) (*IssuedKeyResult, error) {
+	var out IssuedKeyResult
+	path := "/api/key-specs/" + url.PathEscape(specID) + "/keys"
+	if err := s.client.doRequest(ctx, http.MethodPost, path, nil, in, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// SearchIssuedKeys returns issued keys for a spec matching req. Pass nil for
+// default pagination. Filter on subject (eq/contains/in), status, id,
+// created_at, or expires_at — there is no arbitrary-claim filter.
+func (s *KeySpecsService) SearchIssuedKeys(ctx context.Context, specID string, req *SearchRequest) (*SearchResponse[IssuedKey], error) {
+	if req == nil {
+		req = &SearchRequest{}
+	}
+	var out SearchResponse[IssuedKey]
+	path := "/api/key-specs/" + url.PathEscape(specID) + "/keys/search"
+	if err := s.client.doRequest(ctx, http.MethodPost, path, nil, req, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// RevokeKey revokes a single issued key by its ID within the spec. Idempotent
+// from the caller's view: a 204 returns nil.
+func (s *KeySpecsService) RevokeKey(ctx context.Context, specID, keyID string) error {
+	path := "/api/key-specs/" + url.PathEscape(specID) + "/keys/" + url.PathEscape(keyID) + "/revoke"
+	return s.client.doRequest(ctx, http.MethodPost, path, nil, nil, nil)
 }
