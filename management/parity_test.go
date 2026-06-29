@@ -95,3 +95,35 @@ func TestTrustFederationPolicyField(t *testing.T) {
 		t.Errorf("TrustFederationInput JSON missing policy field\n got: %s", b)
 	}
 }
+
+// TestTrustFederationGlobFieldsField pins that GlobFields round-trip on
+// trust federation types. The server accepts glob_fields on federations;
+// the SDK must preserve this field.
+func TestTrustFederationGlobFieldsField(t *testing.T) {
+	in := management.TrustFederationInput{
+		Key:            "k",
+		IdentityFields: []string{"repository", "ref"},
+		GlobFields:     []string{"ref"},
+	}
+	b, err := json.Marshal(in)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	if !strings.Contains(string(b), `"glob_fields":["ref"]`) {
+		t.Errorf("TrustFederationInput JSON missing glob_fields\n got: %s", b)
+	}
+
+	var out management.TrustFederation
+	if err := json.Unmarshal([]byte(`{"glob_fields":["ref"]}`), &out); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if len(out.GlobFields) != 1 || out.GlobFields[0] != "ref" {
+		t.Errorf("TrustFederation.GlobFields = %v, want [ref]", out.GlobFields)
+	}
+
+	// omitempty: an empty GlobFields must NOT appear in the write JSON.
+	empty, _ := json.Marshal(management.TrustFederationInput{Key: "k", IdentityFields: []string{"repository"}})
+	if strings.Contains(string(empty), "glob_fields") {
+		t.Errorf("empty GlobFields must be omitted, got: %s", empty)
+	}
+}
