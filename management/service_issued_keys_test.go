@@ -68,3 +68,22 @@ func TestKeySpecs_SearchIssuedKeys_FiltersBySubject(t *testing.T) {
 		t.Errorf("data: got %+v", out.Data)
 	}
 }
+
+func TestKeySpecs_RevokeKey_RoundTrip(t *testing.T) {
+	var sawMethod, sawPath string
+	_, client := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sawMethod = r.Method
+		sawPath = r.URL.Path
+		w.WriteHeader(http.StatusNoContent)
+	}))
+
+	if err := client.KeySpecs.RevokeKey(context.Background(), "spec_9", "key_1"); err != nil {
+		t.Fatalf("RevokeKey: %v", err)
+	}
+	if sawMethod != http.MethodPost {
+		t.Errorf("method: got %q, want POST", sawMethod)
+	}
+	if sawPath != "/api/key-specs/spec_9/keys/key_1/revoke" {
+		t.Errorf("path: got %q", sawPath)
+	}
+}

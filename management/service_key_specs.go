@@ -86,3 +86,10 @@ func (s *KeySpecsService) SearchIssuedKeys(ctx context.Context, specID string, r
 	}
 	return &out, nil
 }
+
+// RevokeKey revokes a single issued key by its ID within the spec. Idempotent
+// from the caller's view: a 204 returns nil.
+func (s *KeySpecsService) RevokeKey(ctx context.Context, specID, keyID string) error {
+	path := "/api/key-specs/" + url.PathEscape(specID) + "/keys/" + url.PathEscape(keyID) + "/revoke"
+	return s.client.doRequest(ctx, http.MethodPost, path, nil, nil, nil)
+}
