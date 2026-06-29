@@ -71,3 +71,18 @@ func (s *KeySpecsService) IssueKey(ctx context.Context, specID string, in *Issue
 	}
 	return &out, nil
 }
+
+// SearchIssuedKeys returns issued keys for a spec matching req. Pass nil for
+// default pagination. Filter on subject (eq/contains/in), status, id,
+// created_at, or expires_at — there is no arbitrary-claim filter.
+func (s *KeySpecsService) SearchIssuedKeys(ctx context.Context, specID string, req *SearchRequest) (*SearchResponse[IssuedKey], error) {
+	if req == nil {
+		req = &SearchRequest{}
+	}
+	var out SearchResponse[IssuedKey]
+	path := "/api/key-specs/" + url.PathEscape(specID) + "/keys/search"
+	if err := s.client.doRequest(ctx, http.MethodPost, path, nil, req, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}

@@ -41,3 +41,30 @@ func TestKeySpecs_IssueKey_RoundTrip(t *testing.T) {
 		t.Errorf("response: got %+v", out)
 	}
 }
+
+func TestKeySpecs_SearchIssuedKeys_FiltersBySubject(t *testing.T) {
+	var sawPath string
+	var sawBody management.SearchRequest
+	_, client := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sawPath = r.URL.Path
+		_ = json.NewDecoder(r.Body).Decode(&sawBody)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"data":[{"id":"key_1","spec_id":"spec_9","subject":"ws_42","name":"prod","status":"active","created_at":"2026-06-29T00:00:00Z"}],"has_more":false,"limit":25}`))
+	}))
+
+	out, err := client.KeySpecs.SearchIssuedKeys(context.Background(), "spec_9", &management.SearchRequest{
+		Filter: map[string]map[string]any{"subject": {"eq": "ws_42"}},
+	})
+	if err != nil {
+		t.Fatalf("SearchIssuedKeys: %v", err)
+	}
+	if sawPath != "/api/key-specs/spec_9/keys/search" {
+		t.Errorf("path: got %q", sawPath)
+	}
+	if sawBody.Filter["subject"]["eq"] != "ws_42" {
+		t.Errorf("filter: got %+v", sawBody.Filter)
+	}
+	if len(out.Data) != 1 || out.Data[0].Subject != "ws_42" || out.Data[0].Name != "prod" {
+		t.Errorf("data: got %+v", out.Data)
+	}
+}
